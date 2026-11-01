@@ -444,7 +444,7 @@ It plugs into LangChain and LangGraph like any other `Embeddings`.
 
 ## ADR-0026: Golden set drafted by Claude with machine-verified evidence; synthetic set deferred
 
-**Status:** accepted (Step 8). The human review of every item is the gate.
+**Status:** accepted (Step 8). Gate passed on 2026-11-01: the project owner reviewed all 80 items and accepted them unchanged.
 
 **Context.** The brief asks for 60–100 hand-verified questions drafted by an LLM, plus a synthetic set from the Ragas test-set generator. The OpenRouter key allows 50 free requests per day.
 

@@ -34,6 +34,7 @@
 1. **Drafting.** Questions were drafted by Claude (Opus 5.5, via Claude Code, using no OpenRouter quota) by reading `data/parsed/pages.jsonl`. Every answerable question carries a short verbatim quote from the page that answers it.
 2. **Automatic check.** `build.py` requires every quote to appear on its stated page, ignoring case, whitespace and curly vs. straight quotes. The page must be retrievable content, not the cover or TOC. Tests prove a wrong page, an invented quote or a TOC page are rejected.
 3. **Human review (the Step 8 gate).** The project owner checks every item against the rendered PDF page with `review.py html`, and records accept / edit / reject. Status is kept per item (`review_status`), and edits to text mark an item `edited`.
+   **Done on 2026-11-01: all 80 items accepted, none edited or rejected.**
 4. Unanswerable topics were checked absent with a full-text search of the parsed guide: Face ID, Dynamic Island, Apple Pay, Android, Apple Watch, wireless charging, USB-C, dark mode, widgets, battery health, storage sizes, device prices.
 
 ## Category counts (80 items)
