@@ -32,9 +32,12 @@ dev = [
 # PyMuPDF is AGPL-3.0: acceptable for an offline tool that is not distributed
 # as part of the runtime image (see docs/DECISIONS.md).
 ingest = [
+    "langchain-text-splitters>=1.0",  # recursive splitter for oversized elements + naive baseline
+    "matplotlib>=3.9",  # chunk distribution plots in docs/CHUNKING.md
     "pdfplumber>=0.11",  # MIT; compared against PyMuPDF in docs/PARSING_REPORT.md
     "pymupdf>=1.25",
     "pypdf>=5.0",  # BSD; compared against PyMuPDF in docs/PARSING_REPORT.md
+    "tokenizers>=0.20",  # BERT WordPiece token counts (the strictest embedding limit: 512)
 ]
 
 [tool.uv]
