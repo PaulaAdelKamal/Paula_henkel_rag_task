@@ -459,3 +459,24 @@ It plugs into LangChain and LangGraph like any other `Embeddings`.
 **Consequences.**
 - A Claude-drafted set may share Claude's phrasing habits. The human review, the adversarial and hard-negative items, and the multi-turn paraphrases mitigate this.
 - The synthetic set would add scale and a different question distribution once generated.
+
+---
+
+## ADR-0027: Steps 9–10 (benchmark and ablations) deferred to future work; preferred production models
+
+**Status:** accepted (decided by the project owner, 2026-11-01)
+
+**Context.** The planned embedding benchmark, answering-model comparison, Ragas evaluation and ablations need hundreds to thousands of model calls. The project runs on free OpenRouter models capped at 50 requests per day. Free endpoints are also noisy (Gemma was rate-limited throughout Step 5, and Nemotron 3.5 8B embeddings fail on batches), so a comparison on them wouldn't be fair either.
+
+**Decision.**
+- Don't execute Steps 9 and 10 in this submission.
+- Document them as future work in `docs/EXPERIMENTS.md`: protocol, metrics, candidates, ablations, and the techniques to add at scale (reranker, hybrid retrieval, metadata routing, quantisation, caching).
+- Record the owner's preferred production combination, untested here:
+  - **embeddings:** Qwen3-Embedding 4B, hosted ($0.02 per 1M tokens);
+  - **answering:** GPT-6 Luna or Claude Haiku 5.5 ($0.10 in / $0.50 out per 1M tokens, both with strict structured outputs).
+- The rationale is price: the task is undemanding, short grounded answers over about five passages, at about $0.0002 per question.
+
+**Consequences.**
+- There are no benchmark numbers. The provisional defaults (Nemotron 3.5 1B embeddings, the free Gemma → Nemotron chat chain, chunk config `edb94b731b`, relevance threshold 0) stay the shipped configuration, justified by design reasoning and the manual gates rather than by measurement. ADR-0014 and ADR-0022 remain *provisional*.
+- Everything the experiments need already exists: the reviewed golden set in Langfuse, the 14 chunk configurations, the embedding registry, idempotent ingestion, model choice via environment variables, and per-turn traces.
+- The plan's Step 9/10 tags are intentionally absent, as Step 2's is.

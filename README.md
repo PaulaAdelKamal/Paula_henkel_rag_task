@@ -4,7 +4,7 @@ A grounded chatbot that answers questions **only** from the *iOS 7.1 iPhone User
 
 Stack: LangGraph (orchestration) · Streamlit (UI) · Qdrant Cloud (vector store) · OpenRouter (chat and embedding models) · Langfuse (tracing and evaluation, optional).
 
-> **Status:** Step 7, runs in a single Docker container. Evaluation and tuning (Steps 8–10) are in progress.
+> **Status:** runs in a single Docker container. A reviewed 80-question golden set is ready; model benchmarking and tuning are future work (see below).
 
 ## Quick start
 
@@ -41,7 +41,7 @@ docker run -p 8000:8000 --env-file .env -v "$PWD/data/cache/ca-bundle.pem:/etc/s
 
 ## Models
 
-Provisional until the embedding benchmark (Step 9) and the ablations (Step 10). Exact versions are in `docs/VERSIONS.md`.
+These are the shipped (free) models. The preferred production combination is under Future work. Exact versions are in `docs/VERSIONS.md`.
 
 | Role | Model |
 |---|---|
@@ -49,6 +49,19 @@ Provisional until the embedding benchmark (Step 9) and the ablations (Step 10). 
 | Embeddings | `nvidia/nemotron-3.5-embed-1b:free` (via OpenRouter, free, 2048-d) |
 
 Only free OpenRouter models are used. A free-tier key allows 50 free-model requests per day (1000 with $10 of credit), so heavy use can hit rate limits.
+
+## Future work
+
+The planned embedding benchmark and optimisation ablations (Steps 9–10) were deferred: they need far more model calls than the free tier allows. The full plan is in `docs/EXPERIMENTS.md`.
+
+- **Compare embedding and answering models** on the reviewed golden set, to find the best combination for this guide. Measure page-level retrieval metrics with confidence intervals, refusal and citation accuracy, and Ragas faithfulness and relevancy with a judge from another model family, as Langfuse experiments.
+- **Tune chunking, top-k, hybrid retrieval and the relevance threshold** per embedding model. All 14 chunk configurations are already built.
+- **At larger scale** (millions of documents), add a reranker, hybrid dense + sparse retrieval, metadata routing, quantised and sharded indexes, and caching. They aren't needed for one 162-page guide.
+- **Preferred production combination (not yet benchmarked):**
+  - **embeddings:** hosted **Qwen3-Embedding 4B** (`qwen/qwen3-embedding-4b`, $0.02 per 1M tokens);
+  - **answering:** **GPT-6 Luna** (`openai/gpt-6-luna`) or **Claude Haiku 5.5** (`anthropic/claude-haiku-5.5`), both $0.10 / $0.50 per 1M tokens.
+
+  The task isn't demanding: short grounded answers over about five passages, at about $0.0002 per question, so a small, cheap model is the right fit. Switching is configuration plus one ingestion run.
 
 ## Development
 

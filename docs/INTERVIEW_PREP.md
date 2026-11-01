@@ -418,3 +418,45 @@ Per-category metrics in Step 9 then show *where* a configuration wins or loses.
   - metadata: category, difficulty, review status, evidence.
 - Step 9 runs experiments against it, so runs are comparable item by item in the Langfuse UI.
 - Re-uploading after review updates items in place, and rejected items are archived.
+
+---
+
+## Steps 9–10 (deferred): what I must be able to explain
+
+**1. Why didn't you benchmark embedding and answering models?**
+- A fair comparison needs hundreds to thousands of calls: every golden question through every configuration, plus an LLM judge.
+- The project ran on free models capped at 50 requests per day, and free endpoints were unreliable (rate-limited Gemma, a batch-failing 8B embedder). Numbers from that setup would mostly measure rate limits.
+- So I documented the full protocol as future work, and kept the reviewed golden set, the chunk grid, the embedding registry and the Langfuse wiring ready, so the benchmark is a configuration-and-run exercise.
+
+**2. How would you run the benchmark?**
+- **First, retrieval only, which is cheap:** embed the 80 golden questions per model (batched) and compute page-level hit@k, MRR and nDCG against the derived gold pages, per category, with bootstrap confidence intervals. With 63 answerable questions, small differences are noise.
+- **Then end to end, on the top two or three:**
+  - refusal precision and recall, citation accuracy and validity, adversarial behaviour;
+  - Ragas faithfulness and relevancy with a judge from a different model family;
+  - latency and cost.
+- Each run is a Langfuse experiment over the `golden` dataset.
+
+**3. Which models would you choose, and why?**
+- **Embeddings:** hosted Qwen3-Embedding 4B, a strong open-weight retriever at $0.02 per 1M tokens.
+- **Answering:** GPT-6 Luna or Claude Haiku 5.5, both $0.10/$0.50 per 1M tokens with strict structured outputs.
+- The task is undemanding: short grounded answers over about five passages, with citations rendered by code. A small, cheap model is enough, at about $0.0002 per question.
+- I'd pick between the two answering models on refusal and citation accuracy, since they cost the same. I'd also benchmark Qwen3-Embedding 8B, which is listed at a lower price than the 4B.
+
+**4. What would change at millions of documents?**
+- Add a reranker over the top 50–100 dense hits.
+- Hybrid dense plus BM25/sparse retrieval with rank fusion, for exact terms.
+- Metadata filters or routing by product, version and language.
+- Query decomposition or expansion when recall drops.
+- Quantised, sharded indexes.
+- Caching.
+- Evaluation would scale with a synthetic set and online feedback scores.
+
+At 336 chunks none of this is needed, and adding it would cost latency and complexity without evidence of benefit.
+
+**5. Without a benchmark, how do you justify the current defaults?**
+- By design reasoning and direct checks:
+  - structure-aware chunks fit the strictest embedding models and keep how-to sections whole;
+  - the embedding model ranked the right page first on the sanity query;
+  - the pipeline passed the 8-question manual gate and the in-container smoke test;
+  - grounding is enforced in code (citations from metadata, invented sources dropped).
+- I call these defaults provisional in the ADRs rather than claiming they're optimal.

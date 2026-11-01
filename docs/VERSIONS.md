@@ -54,7 +54,7 @@
 | actions/checkout | v7.0.1 | 3d3c42e5aac5ba805825da76410c181273ba90b1 |
 | astral-sh/setup-uv | v10.3.3 | 68559e99cc807c1eb7e9238fd43a15bba460eec2 |
 
-## Models (free OpenRouter models only; provisional until the Step 9/10 benchmark)
+## Models (shipped: free OpenRouter models; the benchmark is deferred, see docs/EXPERIMENTS.md)
 
 Checked against the live OpenRouter listings on 2026-11-01. Full registry and probe results: `docs/EMBEDDING_CANDIDATES.md`.
 
@@ -68,3 +68,11 @@ Checked against the live OpenRouter listings on 2026-11-01. Full registry and pr
 | Embedding | `nvidia/nemotron-3.5-embed-8b:free` (4096-d) | shortlisted, deferred (endpoint fails on batches) |
 | Vision captioning | not chosen yet | Step 2 |
 | Ragas judge | not chosen yet (must be a different family from chat) | Step 9 |
+
+### Preferred production combination (owner's choice, not benchmarked; ADR-0027)
+
+| Role | Slug | Price on OpenRouter (2026-11-01) |
+|---|---|---|
+| Embedding | `qwen/qwen3-embedding-4b` (32k context) | $0.02 per 1M tokens |
+| Answering | `openai/gpt-6-luna` | $0.10 in / $0.50 out per 1M tokens |
+| Answering (alternative) | `anthropic/claude-haiku-5.5` | $0.10 in / $0.50 out per 1M tokens |
