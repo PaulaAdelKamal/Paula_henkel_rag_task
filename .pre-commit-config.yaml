@@ -5,6 +5,7 @@
 # blocks freshly downloaded native binaries (ruff.exe, gitleaks.exe, Go), so
 # Python tools run as modules from the project venv and native tools run from
 # their official Docker images (Docker Desktop must be running). See ADR-0003.
+default_stages: [pre-commit]  # only gitleaks-history opts into pre-push
 repos:
   - repo: local
     hooks:
