@@ -32,12 +32,15 @@ class Settings(BaseSettings):
     qdrant_url: str
     qdrant_api_key: SecretStr
 
-    # --- Runtime: models (provisional defaults until the Step 9/10 benchmark) ---
-    chat_model: str = "openai/gpt-4.1-mini"
-    embedding_model: str = "qwen/qwen3-embedding-8b"
+    # --- Runtime: models (free OpenRouter models; provisional until the Step 9/10 benchmark) ---
+    chat_model: str = "google/gemma-4-31b-it:free"
+    embedding_model: str = "nvidia/nemotron-3.5-embed-1b:free"
 
     # --- Runtime: retrieval ---
     qdrant_collection: str | None = None  # optional override of the derived name
+    chunk_config_hash: str = (
+        "edb94b731b"  # chunk config the index was built with (docs/CHUNKING.md)
+    )
     top_k: int = Field(default=5, ge=1, le=50)
     relevance_threshold: float = Field(default=0.0, ge=-1.0, le=1.0)
 
