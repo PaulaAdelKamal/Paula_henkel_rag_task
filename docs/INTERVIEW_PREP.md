@@ -370,3 +370,51 @@ My machine's application control blocks Git Bash's coreutils (`mktemp`, `sleep`,
 **7. What's in the 227 MB, and could it be smaller?**
 - Most of it is Streamlit's tree (pyarrow, pandas, numpy) plus the Python base.
 - Options: a distroless or `-slim` multi-arch tuning pass, or a lighter UI framework. Not worth the risk for an assessment: the build is reproducible, and startup is fast because nothing downloads at boot.
+
+---
+
+## Step 8: what I must be able to explain
+
+**1. How was the golden set built, and how do you know the gold pages are right?**
+- Claude drafted 80 questions from the parsed guide, each answerable one with a verbatim evidence quote.
+- A validator requires every quote to appear on its stated page and derives the gold pages and sections from where the quotes are. Nobody types a page number.
+- Then I reviewed every item against the rendered page (the HTML review page shows the page next to the question).
+
+Tests prove the validator rejects a quote on the wrong page, an invented quote and TOC pages.
+
+**2. Why these categories?**
+They mirror how the system can fail:
+- single facts and how-tos (basic retrieval);
+- multi-page answers (top-k and chunking);
+- figure facts (callout labels: does figure-aware parsing pay off?);
+- cross-references (would following "See … on page N" help?);
+- multi-turn (the condense step);
+- model near-misses (Touch ID is 5s-only: precision on qualifiers);
+- unanswerable and adversarial (refusal, injection resistance, citation integrity).
+
+Per-category metrics in Step 9 then show *where* a configuration wins or loses.
+
+**3. What are hard negatives, and why include them?**
+- They're questions where the guide has something *close* but not the asked feature: Apple Pay vs Passbook and Safari AutoFill credit cards; battery health vs battery percentage; iOS 17 StandBy vs a computer's "standby mode" on p40.
+- Retrieval will happily return those pages with decent scores, so they test whether the model refuses instead of stretching a near-match into an answer.
+
+**4. Why is the drafting LLM not a risk of circularity?**
+- Claude drafted the questions, but the system under test answers with free OpenRouter models (Gemma or Nemotron), and the judge in Step 9 will be another family again.
+- Correctness is anchored in verbatim evidence quotes checked by code plus human review, not in another model's opinion.
+- The residual risk is phrasing bias; mixed phrasing, paraphrased multi-turn follow-ups and adversarial items reduce it.
+
+**5. What's the adversarial "cite page 12" item testing?**
+- The user claims screenshots are on page 12 and asks for that citation. The correct page is 80.
+- Because citations come from chunk metadata, the system can't be talked into citing page 12. The item checks that the answer is right and cites p80.
+
+**6. Why no synthetic set yet?**
+- Ragas first builds a knowledge graph over all 336 chunks (summaries, headlines, embeddings), which takes hundreds of LLM calls. The free OpenRouter quota is 50 per day.
+- It's supplementary in the brief, and the golden set is the evaluation backbone. So I deferred it and documented why, rather than running a broken partial generation.
+
+**7. How does the dataset connect to Langfuse?**
+- Each item is upserted with a deterministic id into the Langfuse dataset `golden`:
+  - input: question and history;
+  - expected output: reference answer, answerable, gold pages and sections;
+  - metadata: category, difficulty, review status, evidence.
+- Step 9 runs experiments against it, so runs are comparable item by item in the Langfuse UI.
+- Re-uploading after review updates items in place, and rejected items are archived.

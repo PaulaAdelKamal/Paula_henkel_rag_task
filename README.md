@@ -63,6 +63,8 @@ uv run python -m ingestion.ingest --all --plan   # request budget, no API calls 
 uv run python -m ingestion.verify_index     # collection health + sanity query + keep-alive
 uv run python -m app.cli --debug            # chat in the terminal (answers + Sources)
 uv run python -m streamlit run app/ui.py    # web UI on http://localhost:8000
+uv run python -m eval.datasets.build        # validate the golden set -> eval/datasets/golden.jsonl
+uv run python -m eval.datasets.review html  # review page with the gold PDF pages rendered
 uv run python -m pre_commit install --hook-type pre-commit --hook-type pre-push
 ```
 
@@ -74,5 +76,6 @@ The pre-commit hooks run ruff and gitleaks from Docker images, so Docker must be
 - `docs/PARSING_REPORT.md`: PDF forensics, extractor comparison, parser design and spot check
 - `docs/CHUNKING.md`: chunking strategy, grid, distributions and the chunk metadata schema
 - `docs/EMBEDDING_CANDIDATES.md`: free embedding models, prefixes, probe and ingestion results
+- `eval/datasets/README.md`: golden evaluation set (schema, categories, how gold pages were verified)
 - `docs/VERSIONS.md`: pinned library and model versions
 - `docs/ARCHITECTURE.md`, `docs/EXPERIMENTS.md`, `docs/INTERVIEW_PREP.md`

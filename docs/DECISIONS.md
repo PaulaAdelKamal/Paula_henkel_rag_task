@@ -439,3 +439,23 @@ It plugs into LangChain and LangGraph like any other `Embeddings`.
 - Alpine: Python wheels such as pyarrow and pypdfium2 are glibc builds.
 - Baking a `.env` or keys into the image.
 - Downloading models at container start: all models are API calls, so the container is ready as soon as Streamlit is.
+
+---
+
+## ADR-0026: Golden set drafted by Claude with machine-verified evidence; synthetic set deferred
+
+**Status:** accepted (Step 8). The human review of every item is the gate.
+
+**Context.** The brief asks for 60–100 hand-verified questions drafted by an LLM, plus a synthetic set from the Ragas test-set generator. The OpenRouter key allows 50 free requests per day.
+
+**Decisions.**
+- **Drafting:** the 80 golden candidates were drafted by Claude (Opus 5.5, in Claude Code), reading `data/parsed/pages.jsonl` directly. That's an LLM draft, as the brief asks, at zero OpenRouter cost, with direct control over category balance and hard negatives.
+- **Evidence, not page numbers.** Each answerable item carries verbatim **evidence quotes**. `eval/datasets/build.py` checks every quote on its page (normalising case, whitespace and quote marks) and **derives** gold pages and gold sections from where the quotes are. No page number or section is typed by hand, so the human review checks meaning and the best page, not transcription.
+- **Coverage:** 9 categories, including figure-dependent questions (facts that exist only in callout labels), cross-references, multi-turn with history, model near-misses, 13 unanswerable questions with hard negatives, and 6 adversarial questions. 21% must be refused.
+- **Review:** an HTML page with the rendered gold pages, a CSV round trip and an interactive CLI. `review_status` is kept per item, and edits mark an item `edited`.
+- **Langfuse:** an idempotent upload to the dataset `golden`, with deterministic item ids. Rejected items are archived, not deleted. This uses Langfuse keys only.
+- **Synthetic set deferred.** Ragas builds a knowledge graph over every chunk before generating (hundreds of LLM calls), which doesn't fit the free quota. It's optional for the brief's metrics and will run if the quota allows. The golden set doesn't depend on it.
+
+**Consequences.**
+- A Claude-drafted set may share Claude's phrasing habits. The human review, the adversarial and hard-negative items, and the multi-turn paraphrases mitigate this.
+- The synthetic set would add scale and a different question distribution once generated.
