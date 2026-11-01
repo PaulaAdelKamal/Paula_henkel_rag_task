@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     langfuse_base_url: str = "https://cloud.langfuse.com"
 
     # --- Runtime: server ---
+    app_env: str = "dev"  # dev | eval | prod-demo; tagged on every trace
     app_port: int = 8000
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 
