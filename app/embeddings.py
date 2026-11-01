@@ -16,6 +16,7 @@ import json
 import math
 import sqlite3
 import struct
+import threading
 import time
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -108,11 +109,16 @@ class QuotaExhausted(EmbeddingError):
 
 
 class EmbeddingCache:
-    """Content-hash keyed vector cache in SQLite, so nothing is paid (or rate-limited) twice."""
+    """Content-hash keyed vector cache in SQLite, so nothing is paid (or rate-limited) twice.
+
+    Thread-safe: Streamlit and LangGraph run nodes on worker threads, so the
+    connection is shared across threads and every access is serialised by a lock.
+    """
 
     def __init__(self, path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
-        self._db = sqlite3.connect(path)
+        self._lock = threading.Lock()
+        self._db = sqlite3.connect(path, check_same_thread=False)
         self._db.execute("CREATE TABLE IF NOT EXISTS emb (key TEXT PRIMARY KEY, vec BLOB NOT NULL)")
 
     @staticmethod
@@ -121,16 +127,18 @@ class EmbeddingCache:
 
     def get_many(self, keys: Sequence[str]) -> dict[str, list[float]]:
         # One static, parameterised query: the keys travel as a single JSON array.
-        rows = self._db.execute(
-            "SELECT key, vec FROM emb WHERE key IN (SELECT value FROM json_each(?))",
-            (json.dumps(list(keys)),),
-        )
+        with self._lock:
+            rows = self._db.execute(
+                "SELECT key, vec FROM emb WHERE key IN (SELECT value FROM json_each(?))",
+                (json.dumps(list(keys)),),
+            ).fetchall()
         return {k: list(struct.unpack(f"{len(blob) // 4}f", blob)) for k, blob in rows}
 
     def put_many(self, items: dict[str, list[float]]) -> None:
         rows = [(k, struct.pack(f"{len(v)}f", *v)) for k, v in items.items()]
-        self._db.executemany("INSERT OR REPLACE INTO emb (key, vec) VALUES (?, ?)", rows)
-        self._db.commit()
+        with self._lock:
+            self._db.executemany("INSERT OR REPLACE INTO emb (key, vec) VALUES (?, ?)", rows)
+            self._db.commit()
 
     def close(self) -> None:
         self._db.close()

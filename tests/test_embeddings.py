@@ -120,6 +120,20 @@ def test_cache_prevents_repeat_requests(tmp_path):
     cache.close()
 
 
+def test_cache_works_across_threads(tmp_path):
+    """Regression: Streamlit/LangGraph call the embedder from worker threads."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    cache = EmbeddingCache(tmp_path / "e.sqlite")
+    emb = make(FakeAPI(), cache=cache)
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        results = list(pool.map(emb.embed_query, ["a", "b", "a", "c"]))
+    assert len(results) == 4
+    # cached vectors are stored as float32, fresh ones are float64
+    assert all(abs(x - y) < 1e-6 for x, y in zip(results[0], results[2], strict=True))
+    cache.close()
+
+
 def test_registry_specs_are_consistent():
     assert REGISTRY, "registry must not be empty"
     for slug, spec in REGISTRY.items():
