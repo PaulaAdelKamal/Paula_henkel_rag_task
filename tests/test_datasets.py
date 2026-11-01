@@ -5,7 +5,7 @@ import json
 import pytest
 
 from eval.datasets.build import build
-from eval.datasets.review import apply_decision, export_csv, import_csv, load
+from eval.datasets.review import apply_decision, export_csv, import_csv
 from eval.datasets.schema import DraftItem
 from eval.datasets.upload_langfuse import item_payload
 
@@ -132,7 +132,8 @@ def test_review_decisions():
 
 
 def test_csv_round_trip_applies_reviewer_edits(tmp_path):
-    items = load()[:3]
+    # Own fixtures, not the committed draft: its review_status changes when it is reviewed.
+    items = [DraftItem.model_validate(GOOD | {"id": f"t00{n}"}) for n in (1, 2, 3)]
     sheet = tmp_path / "sheet.csv"
     export_csv(items, sheet)
     text = sheet.read_text(encoding="utf-8-sig")
