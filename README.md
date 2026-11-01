@@ -19,6 +19,12 @@ Stack: LangGraph (orchestration) · Streamlit (UI) · Qdrant Cloud (vector store
 - **On first load** the app checks OpenRouter, the Qdrant collection and Langfuse. If a required service isn't ready, it shows which one and why, instead of a broken chat.
 - **Every answer** ends with **Sources** (page and section). If the guide doesn't cover a question, the bot says so and lists the closest sections it searched.
 
+### Troubleshooting
+
+- **The container shows "healthy" but the browser can't connect.** The port isn't published: `docker ps` shows `8000/tcp` instead of `0.0.0.0:8000->8000/tcp`. Docker Desktop's "Run" button on an image adds neither `-p` nor `--env-file`. Start the container with the command in step 4, or set Host port 8000 and the environment variables under "Optional settings".
+- **The page says a required service isn't ready.** The variables from `.env` didn't reach the container (missing `--env-file .env`), or a key or URL is wrong. The page names the failing service.
+- **Use `http://localhost:8000`.** Streamlit's log line `0.0.0.0:8000` is the address *inside* the container.
+
 ### Running behind a TLS-inspecting proxy (development only)
 
 A corporate network that re-signs HTTPS breaks package downloads during the build and API calls in the container. Export a CA bundle that includes the corporate root, pass it as a build secret, and mount it at run time. Normal environments, including the grader's, don't need this.
