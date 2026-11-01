@@ -40,3 +40,9 @@ eval/datasets/review_sheet.csv
 .DS_Store
 Thumbs.db
 *.zip
+
+# --- Process documentation kept locally, not published (only README.md / README_FULL.md are) ---
+docs/
+CLAUDE.md
+eval/datasets/README.md
+data/reports/
