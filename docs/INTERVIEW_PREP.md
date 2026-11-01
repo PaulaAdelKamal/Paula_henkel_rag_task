@@ -107,3 +107,72 @@ The callout labels, which are in the text layer.
 - It's tuned to this guide's typography (fonts, sizes, the blue #007ac2). That's the right trade-off for a single-document chatbot and is enforced by tests, but it wouldn't generalise to other PDFs without new rules.
 - Inline icons lose their meaning ("tap ✈" becomes "tap.").
 - One cross-reference label over-captures (164 of 165 resolve).
+
+---
+
+## Step 2 (skipped): what I must be able to explain
+
+**1. The brief planned vision captions and OCR for figures. Why didn't you do it?**
+I measured first.
+- The 434 image placements are really 122 figures; many drawings are assembled from slices.
+- They're about 140 px wide, so OCR would be mostly garbage and captions coarse.
+- Every figure sits under the instruction it illustrates, so that instruction is effectively the caption, and it's already indexed.
+- The text that matters inside figures, the callout labels, is in the PDF's text layer and was extracted in Step 1.
+
+So captions would mostly duplicate indexed text, and they carry a real risk (next question).
+
+**2. What's the risk of captioning?**
+Grounding. A caption is a model's interpretation, not the document. If the vision model invents a UI detail, that detail gets indexed, and the bot can cite page N for something page N doesn't say. That breaks the one hard requirement: answer strictly from the document. Captions also add text that dilutes chunk embeddings.
+
+**3. So figures are ignored?**
+No. Figure regions are recorded with their anchor instruction and callout labels, and chunks carry `has_figure` / `figure_ids`. The UI can show the source page, and evaluation can slice by figure-dependent questions. If those questions fail at retrieval, I caption only the affected figures and measure again. Captioning becomes a switch you turn on with evidence.
+
+---
+
+## Step 3: what I must be able to explain
+
+**1. What chunking strategy did you choose, and why for this document?**
+Structure-aware packing of whole paragraphs, list items and table rows, with chapter and section boundaries as hard limits.
+- The guide is made of short, titled how-to units (median subsection 173 tokens), and answers are usually one task paragraph on one page.
+- Following that structure keeps each chunk on one topic and keeps page citations precise.
+- A fixed-size splitter cuts tasks in half and even glues the end of one chapter to the start of the next. The baseline did that 7 times.
+
+**2. Why 350 tokens and no overlap?**
+- **350:** big enough that most subsections stay whole (the median chunk is 188 tokens; only long sections get split), and small enough to fit the 512-token embedding models with room for prefixes.
+- **No overlap:** chunks end at paragraph or heading boundaries, so overlap would mostly duplicate text. I measured that 15% overlap changes only 3 of 336 chunks.
+
+Both are starting points. Every alternative is built and will be compared on page-level retrieval metrics in Step 10.
+
+**3. Why did you change the brief's 300/500/800 grid?**
+BGE, E5 and GTE truncate input at 512 tokens. An 800-token chunk would be silently cut for half the candidates, so the embedding benchmark would compare different texts per model. The grid is 200/350/500, and every chunk is tested to fit.
+
+**4. How do you count tokens when every model has its own tokenizer?**
+- I count in BERT WordPiece, the tokenizer of the strictest models, using a vocabulary file committed to the repo, so chunking is deterministic and offline.
+- Long-context models tokenize English to similar or fewer tokens, so the limit is conservative for them.
+- In Step 4 I check the real per-model counts against the `usage` the embeddings API returns.
+
+**5. What is the contextual header and why embed it?**
+- The path "iPhone User Guide > Chapter 3: Basics > Use apps > Multitasking" is prepended to the chunk before embedding.
+- A task paragraph like "Drag the app up from the multitasking display" never names its topic; the header does, which helps both semantic and keyword matching.
+- It costs about 8% more tokens. It isn't shown to the user (`text` vs `embed_text`), and "header off" is in the grid to measure its effect.
+
+**6. Walk me through the metadata.**
+- Pages: `page`, `pages` and the 0-based index; every touched page is cited.
+- Chapter and section path: the citation's "Section", and payload filters.
+- `content_type`, `lead_ins` (task titles), figure ids, cross-references.
+- Separate display text and embedded text.
+- A deterministic UUIDv5 id, so re-ingestion is idempotent.
+- `chunk_config_hash`, which covers config + chunker + parser versions, so a stale collection can't be reused by accident.
+- `element_refs`, tracing each chunk back to parsed elements. The tests use it to prove nothing is lost.
+
+**7. What edge cases did you handle?**
+- An intro line ending in ":" never ends a chunk; it stays with its list.
+- A table continuing into a new chunk repeats its column names once.
+- Tiny leftover pieces are rebalanced (chunks under 64 tokens went from 37 to 26).
+- Paragraphs longer than the limit (only at size 200) are split at sentences into `partial` chunks.
+- Two bugs were caught by tests and fixed:
+  - an intro line was silently dropped at section boundaries (now tested: every element lands in a chunk);
+  - LangChain's `add_start_index` misplaced chunks because it subtracts a token-unit overlap from character offsets.
+
+**8. What would make you change the chunking?**
+Step 10 evidence on page-level hit@k and MRR across the grid, with confidence intervals. If size 200 or 500, overlap, or "header off" win beyond noise, the default changes and an ADR records it. If the differences are within noise, the simpler or cheaper option stays.

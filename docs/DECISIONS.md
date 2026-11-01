@@ -175,3 +175,79 @@ Each entry: context, options, decision, consequences, evidence. Status is *accep
 **Decision.** `data/parsed/pages.jsonl` (1.1 MB) and `toc.json` are committed, while caches and renders stay ignored.
 
 **Why.** Reviewers can audit any page's structure without running the AGPL parser. The output is deterministic (no timestamps; parser version and source SHA-256 are recorded). Diffs on re-parse show exactly what a parser change did. During Step 1, a refactor was verified to produce byte-identical output.
+
+---
+
+## ADR-0013: No figure captions or OCR; figure metadata only (Step 2 skipped)
+
+**Status:** accepted (Step 3; decided by the project owner after reviewing the analysis below). To be revisited with evidence in Steps 9–10.
+
+**Context.** The brief proposed vision-model captions and OCR for figures. Measurements:
+- 434 image placements become **122 real figures** once fragments are merged into regions. The two iPhone drawings on p. 8 are 88 slices.
+- Figures are tiny: median about 106 pt wide, about 140 px in the source image.
+- The guide prints no captions, but every figure sits under the instruction it illustrates.
+- The text inside figures that matters, the callout labels, is already in the text layer and was extracted in Step 1 (74 groups on 63 pages).
+
+**Options.**
+- (a) Caption all 122 figures with a vision model, plus OCR.
+- (b) Record figure regions, anchor text and labels only; no model calls.
+- (c) Ignore figures.
+
+**Decision.** (b). `ingestion/figures.py` writes `figures.jsonl` (region, anchor instruction, callout labels, `duplicate_of`), and chunks carry `has_figure` / `figure_ids`.
+
+**Why.**
+- **Little to gain.** Captions would mostly restate the instruction text that is already indexed, and the high-value figure text (callout labels) is already searchable.
+- **Real grounding risk.** A caption is the model's interpretation, not document text. An invented UI detail would be indexed and could be cited as if it were on page N, against the core requirement to answer strictly from the document.
+- **Retrieval noise.** Extra caption text dilutes chunk embeddings.
+- **Time.** Hours of a timed assessment for an uncertain gain.
+
+**Consequences.**
+- Text baked into screenshots (e.g. "Show me great animated films", p. 42) isn't searchable.
+- Inline icons (vector drawings, not images) keep losing their names ("tap ✈" becomes "tap.").
+- The golden set's figure-dependent questions (Step 8) measure whether this matters. If they fail at retrieval, the affected figures alone get captioned and re-evaluated.
+
+---
+
+## ADR-0014: Structure-aware chunking, 350 BERT tokens including the header, no overlap (starting default)
+
+**Status:** provisional (Step 3). Every alternative is built for the Step 10 comparison.
+
+**Context.**
+- The guide's natural units are short: median paragraph 24 tokens, median subsection 173, p90 413.
+- The strictest embedding candidates (BGE, E5, GTE) truncate at 512 tokens.
+- Answers are usually one task paragraph on one page.
+
+**Decision.**
+- Pack whole parsed elements. Chapters and sections are hard boundaries; subsections are soft (they merge forward under 64 tokens).
+- Size limit 350 BERT WordPiece tokens for header + body, measured with the committed bert-base-uncased vocabulary. The contextual header path is embedded with the text but not shown to the user.
+- No overlap.
+- Size splits never end on an intro line, keep table column names, and rebalance tiny tails.
+- The naive recursive splitter is kept as a baseline.
+
+**Grid change.** The brief's 300/500/800 became **200/350/500**. An 800-token chunk would be silently truncated by half the candidate models, so the embedding benchmark would compare different texts per model.
+
+**Evidence so far (distributional, not retrieval quality).**
+- 336 chunks, median 188 tokens. No chunk crosses a chapter (the naive baseline crosses 7 times).
+- Every element lands in a chunk, and every chunk fits the 512-token models.
+- Overlap changes only 3 chunks at size 350, because structure-aware chunks rarely split mid-unit.
+
+Retrieval evidence comes in Steps 9–10.
+
+---
+
+## ADR-0015: Chunk payload schema
+
+**Status:** accepted (Step 3)
+
+**Decision.** The payload is documented field by field in `docs/CHUNKING.md` §6. Main choices:
+- Deterministic UUIDv5 ids from (config hash, page, embedded text), so ingestion is idempotent.
+- `chunk_config_hash` covers the config plus chunker and parser versions, so a parser change can't silently reuse a stale collection.
+- `pages` lists every page a chunk touches, and all of them are cited.
+- `text` (shown) is separate from `embed_text` (embedded, with the synthetic header).
+- `element_refs` keeps traceability to `pages.jsonl`.
+
+**Deviations from the brief.**
+- `figure_caption` and `figure_ocr_text` are absent (ADR-0013).
+- `content_type` is `text | table | legal` (figures are inline labels, not separate chunks; the TOC is never chunked).
+- `subsection_titles` is a list.
+- Added `lead_ins` (task titles: keyword anchors and readable citation labels), `partial` and `element_refs`.

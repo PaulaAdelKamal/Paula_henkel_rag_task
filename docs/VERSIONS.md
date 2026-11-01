@@ -40,6 +40,10 @@
 | pymupdf | 2.0 | ingest (AGPL-3.0, offline only); chosen parser (ADR-0009) |
 | pdfplumber | 0.11.10 (pdfminer.six 20260107) | ingest (MIT); comparison only |
 | pypdf | 6.21.4 | ingest (BSD-3-Clause); comparison only, licence fallback |
+| langchain-text-splitters | 1.1.3 | ingest (MIT); naive baseline + oversized-element splits |
+| tokenizers | 0.23.3 | ingest (Apache-2.0); BERT WordPiece token counts |
+| matplotlib | 3.11.2 | ingest; chunk distribution plots |
+| bert-base-uncased vocab | 30,522 tokens | committed asset (Apache-2.0), `ingestion/assets/` |
 
 ## CI actions (pinned by commit SHA)
 

@@ -4,7 +4,7 @@ A grounded chatbot that answers questions **only** from the *iOS 7.1 iPhone User
 
 Stack: LangGraph (orchestration) · Streamlit (UI) · Qdrant Cloud (vector store) · OpenRouter (chat and embedding models) · Langfuse (tracing and evaluation, optional).
 
-> **Status:** Step 1, document parsing done (`data/parsed/`). The chatbot is not runnable yet.
+> **Status:** Step 3, parsing and chunking done (`data/parsed/`, `data/chunks/`). The chatbot is not runnable yet.
 
 ## Quick start (final form, available from Step 7)
 
@@ -32,6 +32,8 @@ uv sync                                    # runtime + dev + ingest groups
 uv run python -m pytest                    # unit tests (offline)
 uv run python -m scripts.check_connections # verify OpenRouter, Qdrant, Langfuse with your .env
 uv run python -m ingestion.parse_pdf        # re-parse the PDF into data/parsed/
+uv run python -m ingestion.figures          # figure regions -> data/parsed/figures.jsonl
+uv run python -m ingestion.chunking --grid  # chunk every config -> data/chunks/
 uv run python -m pre_commit install --hook-type pre-commit --hook-type pre-push
 ```
 
@@ -41,5 +43,6 @@ The pre-commit hooks run ruff and gitleaks from Docker images, so Docker must be
 
 - `docs/DECISIONS.md`: decision log (ADRs)
 - `docs/PARSING_REPORT.md`: PDF forensics, extractor comparison, parser design and spot check
+- `docs/CHUNKING.md`: chunking strategy, grid, distributions and the chunk metadata schema
 - `docs/VERSIONS.md`: pinned library and model versions
 - `docs/ARCHITECTURE.md`, `docs/EXPERIMENTS.md`, `docs/INTERVIEW_PREP.md`
