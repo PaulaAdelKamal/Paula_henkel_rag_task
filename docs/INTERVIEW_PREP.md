@@ -1,5 +1,97 @@
 # Interview prep
 
+## Cheat sheet (one block per topic the interview will probe)
+
+### Chunking
+- **What:** structure-aware packing of whole parsed elements (paragraphs, list items, table rows, diagram labels) into chunks of at most **350 BERT tokens including a header** like "iPhone User Guide > Chapter 3: Basics > Use apps > Multitasking".
+  - Chapters and sections are hard boundaries; subsections are soft (tiny ones merge forward).
+  - Chunks never end on an intro line ending in ":"; continued tables repeat their column names; tiny tails are rebalanced.
+- **Why for this document:**
+  - It's a how-to manual of short titled units (median subsection 173 tokens, median paragraph 24), so a chunk is usually one whole subsection.
+  - Answers are local (one task, one page), so page citations stay precise.
+  - Context lives in headings, which is why the header is embedded.
+- **Size and overlap:** 350 fits the strictest embedding models (512 tokens) with room for prefixes. Overlap 0, because boundaries are semantic; I measured that 15% overlap changes only 3 of 336 chunks.
+- **Rejected:** fixed-size splitting. The baseline cut tasks in half and crossed chapters 7 times. I also rejected the brief's 800-token grid point, which would be silently truncated by 512-token models.
+- **Numbers:** 336 chunks, median 188 tokens, about 64k tokens to embed.
+
+### Ingestion pipeline
+1. **Parse** with PyMuPDF in native order, chosen by measurement: 36/36 reading-order anchors, 0.5 s, and per-span styles. The AGPL licence stays offline only.
+2. **Typography rules** classify every line (footer, chapter title, section, subsection, lead-in, callout label, table header, bullet). The TOC is the ground truth for the section map, cross-checked against headings and footers.
+3. **Figures:** 434 image placements merge into 122 figure regions with anchor text and labels. No captions or OCR (ADR-0013).
+4. **Chunk**, then **embed** through OpenRouter with per-model prefixes and a cache, then **upsert** into Qdrant (one collection per model). Ids are deterministic, so re-running is idempotent (0 requests on a re-run).
+5. **Verify:** counts, dimension, and the sanity query (p22 at rank 1).
+
+### Vector-store metadata (why each field exists)
+- `page` / `pages` / `pdf_page_index`: citations (every touched page) and rendering the page in the UI.
+- `chapter_*` / `section_title` / `subsection_titles` / `section_path`: the "Section" in citations, filters, and the embedded header.
+- `content_type`: tables and legal text treated differently; the TOC is never indexed.
+- `lead_ins`: task titles, useful as keyword anchors.
+- `has_figure` / `figure_ids`: link chunks to figure regions.
+- `xrefs`: possible cross-reference following.
+- `text` vs header: displayed vs embedded text.
+- `chunk_config_hash` / `embedding_model`: provenance, and a stale collection can't be queried by mistake.
+- Deterministic UUIDv5 ids: idempotent ingestion.
+
+### Embedding model choice
+- **Constraint:** free OpenRouter models only. All five free embedders are in a registry with their exact prefixes (LFM's document prefix is "document: ", not "passage: ").
+- **Probe:** prefixes reach the model (cosine 0.94 between "X" and "query: X"), and vectors come back normalised.
+- **Ingested:** Nemotron 3.5 1B (default) and LFM 350M. Both rank page 22 first for "close an app". Nemotron 3.5 8B was deferred: its endpoint fails on batches.
+- **Effect on quality:** the wrong prefix or the wrong model silently lowers recall. The benchmark that would quantify it is future work.
+- **Preferred production model:** hosted Qwen3-Embedding 4B.
+
+### Model choices
+- **Chat:** free Gemma 4 31B, falling back through OpenRouter's `models` list to Nemotron 3.5 Super VL, then Gemma 26B. Gemma was rate-limited throughout testing, so Nemotron answered.
+- **Structured answers:** `{answerable, answer, used_sources}` by function calling; the free Gemma endpoint has no strict JSON-schema mode.
+- **Temperature:** 0.
+- **Preferred production model:** GPT-6 Luna or Claude Haiku 5.5 ($0.10/$0.50 per 1M tokens, strict structured outputs), because the task is undemanding: about $0.0002 per question.
+
+### Config and secrets
+- **pydantic-settings** is the single source of truth. Keys are `SecretStr`, errors name variables but never values, defaults cover everything except the three keys, and empty values mean "use the default".
+- **`.env` hygiene:** ignored by git and Docker from the first commit. `.env.example` is unquoted, because `--env-file` keeps quotes literally.
+- **Scanners:** detect-secrets and gitleaks on every commit, gitleaks over the full history on push and in CI. The image is checked for a `.env` in CI.
+- **TLS:** truststore makes Python use the OS trust store behind a TLS-inspecting proxy, with a dev-only CA-bundle secret for Docker.
+
+## The 10 hardest questions (short answers)
+
+1. **How do you guarantee the page numbers are right?**
+   - The model never sees page numbers.
+   - It returns source numbers, and code validates them and renders pages from metadata.
+   - Printed page = PDF page is tested on every numbered page.
+2. **How do you know "not in the guide" is detected correctly?**
+   - The model's structured `answerable` flag decides, backed by "no valid source means refuse". A score threshold can't: Face ID scored 0.483, higher than the answerable screenshot question at 0.318.
+   - Verified on the manual gate; the 13 unanswerable and 6 adversarial golden items exist for measuring it.
+3. **Why no benchmark numbers?**
+   - Free-tier quota (50 requests a day) and noisy free endpoints. Numbers from that setup would measure rate limits, not models.
+   - The protocol and every asset it needs are ready (`docs/EXPERIMENTS.md`).
+4. **Why Streamlit, not Chainlit?** Chainlit doesn't support Python 3.14, the only interpreter allowed on the dev machine. The requirements are framework-independent.
+5. **Why skip figure captioning?**
+   - The 122 real figures are tiny (about 140 px) and sit under the instruction they illustrate.
+   - Their callout labels are already text and are extracted.
+   - A vision caption could inject invented facts into a strict-grounding index.
+6. **What would break first at a million documents?**
+   - First-stage precision. I'd add a reranker, hybrid BM25 + dense retrieval, metadata routing, quantised and sharded indexes, and caching.
+7. **How does multi-turn work, and what if the rewrite fails?**
+   - The last three turns plus the new message are condensed into a standalone question, used for retrieval and answering.
+   - A failed rewrite falls back to the raw question.
+8. **How do you resist prompt injection?**
+   - The prompt declares text to be data.
+   - Structurally, citations come from metadata, invented sources are dropped, an answer needs a retrieved source, and HTML is escaped.
+   - The "cite page 3" attack can't produce a page-3 citation.
+9. **What did the live runs teach you that tests didn't?**
+   - The SQLite cache wasn't thread-safe under Streamlit.
+   - The Langfuse SDK client is a per-key singleton, so the health check silently disabled tracing.
+   - Free-model 429s and a batch-failing embedder.
+   - Stubs test logic; integration bugs need real services.
+10. **What would you do with one more week?**
+    - Run the benchmark on the golden set (retrieval first, then end to end with a cross-family judge).
+    - Calibrate the relevance threshold per model.
+    - Switch to Qwen3-Embedding 4B and GPT-6 Luna or Claude Haiku 5.5 if the numbers agree.
+    - Add a persistent checkpointer.
+
+---
+
+## Per-step notes
+
 One section per step: likely questions and crisp answers, including trade-offs and what was rejected.
 
 ---
