@@ -28,7 +28,6 @@ dist/
 
 # --- Data caches and generated artefacts ---
 data/cache/
-data/parsed/
 data/chunks/
 data/reports/
 eval/reports/raw/

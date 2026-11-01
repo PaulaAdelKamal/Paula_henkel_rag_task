@@ -1,0 +1,1212 @@
+{
+  "source": "iPhone_User_Guide_1.pdf",
+  "source_sha256": "31f8b895e0ab4a06de1fd401525a5653f1b38d8b5cef45fb8139ec2185f9bebd",
+  "parser_version": "1.0.0",
+  "chapters": [
+    {
+      "chapter_number": "1",
+      "chapter_title": "iPhone at a Glance",
+      "kind": "chapter",
+      "page_start": 8,
+      "page_end": 13,
+      "sections": [
+        {
+          "title": "iPhone overview",
+          "page": 8
+        },
+        {
+          "title": "Accessories",
+          "page": 9
+        },
+        {
+          "title": "Multi-Touch screen",
+          "page": 10
+        },
+        {
+          "title": "Buttons",
+          "page": 10
+        },
+        {
+          "title": "Status icons",
+          "page": 12
+        }
+      ],
+      "label": "Chapter 1: iPhone at a Glance"
+    },
+    {
+      "chapter_number": "2",
+      "chapter_title": "Getting Started",
+      "kind": "chapter",
+      "page_start": 14,
+      "page_end": 20,
+      "sections": [
+        {
+          "title": "Install the SIM card",
+          "page": 14
+        },
+        {
+          "title": "Set up and activate iPhone",
+          "page": 14
+        },
+        {
+          "title": "Connect iPhone to your computer",
+          "page": 15
+        },
+        {
+          "title": "Connect to Wi-Fi",
+          "page": 15
+        },
+        {
+          "title": "Connect to the Internet",
+          "page": 16
+        },
+        {
+          "title": "Set up mail and other accounts",
+          "page": 16
+        },
+        {
+          "title": "Apple ID",
+          "page": 16
+        },
+        {
+          "title": "Manage content on your iOS devices",
+          "page": 17
+        },
+        {
+          "title": "iCloud",
+          "page": 17
+        },
+        {
+          "title": "Sync with iTunes",
+          "page": 18
+        },
+        {
+          "title": "Date and time",
+          "page": 19
+        },
+        {
+          "title": "International settings",
+          "page": 19
+        },
+        {
+          "title": "Your iPhone name",
+          "page": 19
+        },
+        {
+          "title": "View this user guide on iPhone",
+          "page": 20
+        }
+      ],
+      "label": "Chapter 2: Getting Started"
+    },
+    {
+      "chapter_number": "3",
+      "chapter_title": "Basics",
+      "kind": "chapter",
+      "page_start": 21,
+      "page_end": 40,
+      "sections": [
+        {
+          "title": "Use apps",
+          "page": 21
+        },
+        {
+          "title": "Customize iPhone",
+          "page": 23
+        },
+        {
+          "title": "Type text",
+          "page": 25
+        },
+        {
+          "title": "Dictate",
+          "page": 28
+        },
+        {
+          "title": "Voice Control",
+          "page": 29
+        },
+        {
+          "title": "Search",
+          "page": 30
+        },
+        {
+          "title": "Control Center",
+          "page": 30
+        },
+        {
+          "title": "Alerts and Notification Center",
+          "page": 31
+        },
+        {
+          "title": "Sounds and silence",
+          "page": 32
+        },
+        {
+          "title": "Do Not Disturb",
+          "page": 32
+        },
+        {
+          "title": "AirDrop, iCloud, and other ways to share",
+          "page": 32
+        },
+        {
+          "title": "Transfer files",
+          "page": 33
+        },
+        {
+          "title": "Personal Hotspot",
+          "page": 33
+        },
+        {
+          "title": "AirPlay",
+          "page": 34
+        },
+        {
+          "title": "AirPrint",
+          "page": 34
+        },
+        {
+          "title": "Use an Apple headset",
+          "page": 35
+        },
+        {
+          "title": "Bluetooth devices",
+          "page": 35
+        },
+        {
+          "title": "Restrictions",
+          "page": 36
+        },
+        {
+          "title": "Privacy",
+          "page": 36
+        },
+        {
+          "title": "Security",
+          "page": 37
+        },
+        {
+          "title": "Charge and monitor the battery",
+          "page": 39
+        },
+        {
+          "title": "Travel with iPhone",
+          "page": 40
+        }
+      ],
+      "label": "Chapter 3: Basics"
+    },
+    {
+      "chapter_number": "4",
+      "chapter_title": "Siri",
+      "kind": "chapter",
+      "page_start": 41,
+      "page_end": 43,
+      "sections": [
+        {
+          "title": "Make requests",
+          "page": 41
+        },
+        {
+          "title": "Tell Siri about yourself",
+          "page": 42
+        },
+        {
+          "title": "Make corrections",
+          "page": 42
+        },
+        {
+          "title": "Siri settings",
+          "page": 43
+        }
+      ],
+      "label": "Chapter 4: Siri"
+    },
+    {
+      "chapter_number": "5",
+      "chapter_title": "Phone",
+      "kind": "chapter",
+      "page_start": 44,
+      "page_end": 49,
+      "sections": [
+        {
+          "title": "Phone calls",
+          "page": 44
+        },
+        {
+          "title": "Visual voicemail",
+          "page": 47
+        },
+        {
+          "title": "Contacts",
+          "page": 48
+        },
+        {
+          "title": "Call forwarding, call waiting, and caller ID",
+          "page": 48
+        },
+        {
+          "title": "Ringtones and vibrations",
+          "page": 48
+        },
+        {
+          "title": "International calls",
+          "page": 48
+        },
+        {
+          "title": "Phone settings",
+          "page": 49
+        }
+      ],
+      "label": "Chapter 5: Phone"
+    },
+    {
+      "chapter_number": "6",
+      "chapter_title": "Mail",
+      "kind": "chapter",
+      "page_start": 50,
+      "page_end": 54,
+      "sections": [
+        {
+          "title": "Write messages",
+          "page": 50
+        },
+        {
+          "title": "Get a sneak peek",
+          "page": 51
+        },
+        {
+          "title": "Finish a message later",
+          "page": 51
+        },
+        {
+          "title": "See important messages",
+          "page": 51
+        },
+        {
+          "title": "Attachments",
+          "page": 52
+        },
+        {
+          "title": "Work with multiple messages",
+          "page": 53
+        },
+        {
+          "title": "See and save addresses",
+          "page": 53
+        },
+        {
+          "title": "Print messages",
+          "page": 54
+        },
+        {
+          "title": "Mail settings",
+          "page": 54
+        }
+      ],
+      "label": "Chapter 6: Mail"
+    },
+    {
+      "chapter_number": "7",
+      "chapter_title": "Safari",
+      "kind": "chapter",
+      "page_start": 55,
+      "page_end": 59,
+      "sections": [
+        {
+          "title": "Safari at a glance",
+          "page": 55
+        },
+        {
+          "title": "Search the web",
+          "page": 55
+        },
+        {
+          "title": "Browse the web",
+          "page": 56
+        },
+        {
+          "title": "Keep bookmarks",
+          "page": 56
+        },
+        {
+          "title": "Share what you discover",
+          "page": 57
+        },
+        {
+          "title": "Fill in forms",
+          "page": 57
+        },
+        {
+          "title": "Avoid clutter with Reader",
+          "page": 58
+        },
+        {
+          "title": "Save a reading list for later",
+          "page": 58
+        },
+        {
+          "title": "Privacy and security",
+          "page": 59
+        },
+        {
+          "title": "Safari settings",
+          "page": 59
+        }
+      ],
+      "label": "Chapter 7: Safari"
+    },
+    {
+      "chapter_number": "8",
+      "chapter_title": "Music",
+      "kind": "chapter",
+      "page_start": 60,
+      "page_end": 66,
+      "sections": [
+        {
+          "title": "iTunes Radio",
+          "page": 60
+        },
+        {
+          "title": "Get music",
+          "page": 61
+        },
+        {
+          "title": "Browse and play",
+          "page": 61
+        },
+        {
+          "title": "Album Wall",
+          "page": 63
+        },
+        {
+          "title": "Audiobooks",
+          "page": 63
+        },
+        {
+          "title": "Playlists",
+          "page": 63
+        },
+        {
+          "title": "Genius—made for you",
+          "page": 64
+        },
+        {
+          "title": "Siri and Voice Control",
+          "page": 64
+        },
+        {
+          "title": "iTunes Match",
+          "page": 65
+        },
+        {
+          "title": "Home Sharing",
+          "page": 65
+        },
+        {
+          "title": "Music settings",
+          "page": 66
+        }
+      ],
+      "label": "Chapter 8: Music"
+    },
+    {
+      "chapter_number": "9",
+      "chapter_title": "Messages",
+      "kind": "chapter",
+      "page_start": 67,
+      "page_end": 69,
+      "sections": [
+        {
+          "title": "SMS, MMS, and iMessages",
+          "page": 67
+        },
+        {
+          "title": "Send and receive messages",
+          "page": 67
+        },
+        {
+          "title": "Manage conversations",
+          "page": 68
+        },
+        {
+          "title": "Share photos, videos, and more",
+          "page": 69
+        },
+        {
+          "title": "Messages settings",
+          "page": 69
+        }
+      ],
+      "label": "Chapter 9: Messages"
+    },
+    {
+      "chapter_number": "10",
+      "chapter_title": "Calendar",
+      "kind": "chapter",
+      "page_start": 70,
+      "page_end": 72,
+      "sections": [
+        {
+          "title": "Calendar at a glance",
+          "page": 70
+        },
+        {
+          "title": "Invitations",
+          "page": 71
+        },
+        {
+          "title": "Use multiple calendars",
+          "page": 71
+        },
+        {
+          "title": "Share iCloud calendars",
+          "page": 72
+        },
+        {
+          "title": "Calendar settings",
+          "page": 72
+        }
+      ],
+      "label": "Chapter 10: Calendar"
+    },
+    {
+      "chapter_number": "11",
+      "chapter_title": "Photos",
+      "kind": "chapter",
+      "page_start": 73,
+      "page_end": 77,
+      "sections": [
+        {
+          "title": "View photos and videos",
+          "page": 73
+        },
+        {
+          "title": "Organize your photos and videos",
+          "page": 74
+        },
+        {
+          "title": "iCloud Photo Sharing",
+          "page": 74
+        },
+        {
+          "title": "My Photo Stream",
+          "page": 75
+        },
+        {
+          "title": "Share photos and videos",
+          "page": 76
+        },
+        {
+          "title": "Edit photos and trim videos",
+          "page": 77
+        },
+        {
+          "title": "Print photos",
+          "page": 77
+        },
+        {
+          "title": "Photos settings",
+          "page": 77
+        }
+      ],
+      "label": "Chapter 11: Photos"
+    },
+    {
+      "chapter_number": "12",
+      "chapter_title": "Camera",
+      "kind": "chapter",
+      "page_start": 78,
+      "page_end": 81,
+      "sections": [
+        {
+          "title": "Camera at a glance",
+          "page": 78
+        },
+        {
+          "title": "Take photos and videos",
+          "page": 79
+        },
+        {
+          "title": "HDR",
+          "page": 80
+        },
+        {
+          "title": "View, share, and print",
+          "page": 80
+        },
+        {
+          "title": "Camera settings",
+          "page": 81
+        }
+      ],
+      "label": "Chapter 12: Camera"
+    },
+    {
+      "chapter_number": "13",
+      "chapter_title": "Weather",
+      "kind": "chapter",
+      "page_start": 82,
+      "page_end": 83,
+      "sections": [],
+      "label": "Chapter 13: Weather"
+    },
+    {
+      "chapter_number": "14",
+      "chapter_title": "Clock",
+      "kind": "chapter",
+      "page_start": 84,
+      "page_end": 85,
+      "sections": [
+        {
+          "title": "Clock at a glance",
+          "page": 84
+        },
+        {
+          "title": "Alarms and timers",
+          "page": 85
+        }
+      ],
+      "label": "Chapter 14: Clock"
+    },
+    {
+      "chapter_number": "15",
+      "chapter_title": "Maps",
+      "kind": "chapter",
+      "page_start": 86,
+      "page_end": 88,
+      "sections": [
+        {
+          "title": "Find places",
+          "page": 86
+        },
+        {
+          "title": "Get more info",
+          "page": 87
+        },
+        {
+          "title": "Get directions",
+          "page": 87
+        },
+        {
+          "title": "3D and Flyover",
+          "page": 88
+        },
+        {
+          "title": "Maps settings",
+          "page": 88
+        }
+      ],
+      "label": "Chapter 15: Maps"
+    },
+    {
+      "chapter_number": "16",
+      "chapter_title": "Videos",
+      "kind": "chapter",
+      "page_start": 89,
+      "page_end": 91,
+      "sections": [
+        {
+          "title": "Videos at a glance",
+          "page": 89
+        },
+        {
+          "title": "Add videos to your library",
+          "page": 90
+        },
+        {
+          "title": "Control playback",
+          "page": 90
+        },
+        {
+          "title": "Videos settings",
+          "page": 91
+        }
+      ],
+      "label": "Chapter 16: Videos"
+    },
+    {
+      "chapter_number": "17",
+      "chapter_title": "Notes",
+      "kind": "chapter",
+      "page_start": 92,
+      "page_end": 93,
+      "sections": [
+        {
+          "title": "Notes at a glance",
+          "page": 92
+        },
+        {
+          "title": "Use notes in multiple accounts",
+          "page": 93
+        }
+      ],
+      "label": "Chapter 17: Notes"
+    },
+    {
+      "chapter_number": "18",
+      "chapter_title": "Reminders",
+      "kind": "chapter",
+      "page_start": 94,
+      "page_end": 95,
+      "sections": [
+        {
+          "title": "Scheduled reminders",
+          "page": 95
+        },
+        {
+          "title": "Location reminders",
+          "page": 95
+        },
+        {
+          "title": "Reminders settings",
+          "page": 95
+        }
+      ],
+      "label": "Chapter 18: Reminders"
+    },
+    {
+      "chapter_number": "19",
+      "chapter_title": "Stocks",
+      "kind": "chapter",
+      "page_start": 96,
+      "page_end": 97,
+      "sections": [],
+      "label": "Chapter 19: Stocks"
+    },
+    {
+      "chapter_number": "20",
+      "chapter_title": "Game Center",
+      "kind": "chapter",
+      "page_start": 98,
+      "page_end": 99,
+      "sections": [
+        {
+          "title": "Game Center at a glance",
+          "page": 98
+        },
+        {
+          "title": "Play games with friends",
+          "page": 99
+        },
+        {
+          "title": "Game Center settings",
+          "page": 99
+        }
+      ],
+      "label": "Chapter 20: Game Center"
+    },
+    {
+      "chapter_number": "21",
+      "chapter_title": "Newsstand",
+      "kind": "chapter",
+      "page_start": 100,
+      "page_end": 100,
+      "sections": [
+        {
+          "title": "Newsstand at a glance",
+          "page": 100
+        }
+      ],
+      "label": "Chapter 21: Newsstand"
+    },
+    {
+      "chapter_number": "22",
+      "chapter_title": "iTunes Store",
+      "kind": "chapter",
+      "page_start": 101,
+      "page_end": 102,
+      "sections": [
+        {
+          "title": "iTunes Store at a glance",
+          "page": 101
+        },
+        {
+          "title": "Browse or search",
+          "page": 101
+        },
+        {
+          "title": "Purchase, rent, or redeem",
+          "page": 102
+        },
+        {
+          "title": "iTunes Store settings",
+          "page": 102
+        }
+      ],
+      "label": "Chapter 22: iTunes Store"
+    },
+    {
+      "chapter_number": "23",
+      "chapter_title": "App Store",
+      "kind": "chapter",
+      "page_start": 103,
+      "page_end": 105,
+      "sections": [
+        {
+          "title": "App Store at a glance",
+          "page": 103
+        },
+        {
+          "title": "Find apps",
+          "page": 104
+        },
+        {
+          "title": "Purchase, redeem, and download",
+          "page": 104
+        },
+        {
+          "title": "App Store settings",
+          "page": 105
+        }
+      ],
+      "label": "Chapter 23: App Store"
+    },
+    {
+      "chapter_number": "24",
+      "chapter_title": "Passbook",
+      "kind": "chapter",
+      "page_start": 106,
+      "page_end": 107,
+      "sections": [
+        {
+          "title": "Passbook at a glance",
+          "page": 106
+        },
+        {
+          "title": "Passbook on the go",
+          "page": 106
+        },
+        {
+          "title": "Passbook settings",
+          "page": 107
+        }
+      ],
+      "label": "Chapter 24: Passbook"
+    },
+    {
+      "chapter_number": "25",
+      "chapter_title": "Compass",
+      "kind": "chapter",
+      "page_start": 108,
+      "page_end": 109,
+      "sections": [
+        {
+          "title": "Compass at a glance",
+          "page": 108
+        },
+        {
+          "title": "On the level",
+          "page": 109
+        }
+      ],
+      "label": "Chapter 25: Compass"
+    },
+    {
+      "chapter_number": "26",
+      "chapter_title": "Voice Memos",
+      "kind": "chapter",
+      "page_start": 110,
+      "page_end": 111,
+      "sections": [
+        {
+          "title": "Voice Memos at a glance",
+          "page": 110
+        },
+        {
+          "title": "Record",
+          "page": 110
+        },
+        {
+          "title": "Listen",
+          "page": 111
+        },
+        {
+          "title": "Move recordings to your computer",
+          "page": 111
+        }
+      ],
+      "label": "Chapter 26: Voice Memos"
+    },
+    {
+      "chapter_number": "27",
+      "chapter_title": "FaceTime",
+      "kind": "chapter",
+      "page_start": 112,
+      "page_end": 113,
+      "sections": [
+        {
+          "title": "FaceTime at a glance",
+          "page": 112
+        },
+        {
+          "title": "Make and answer calls",
+          "page": 113
+        },
+        {
+          "title": "Manage calls",
+          "page": 113
+        }
+      ],
+      "label": "Chapter 27: FaceTime"
+    },
+    {
+      "chapter_number": "28",
+      "chapter_title": "Contacts",
+      "kind": "chapter",
+      "page_start": 114,
+      "page_end": 116,
+      "sections": [
+        {
+          "title": "Contacts at a glance",
+          "page": 114
+        },
+        {
+          "title": "Use Contacts with Phone",
+          "page": 115
+        },
+        {
+          "title": "Add contacts",
+          "page": 115
+        },
+        {
+          "title": "Contacts settings",
+          "page": 116
+        }
+      ],
+      "label": "Chapter 28: Contacts"
+    },
+    {
+      "chapter_number": "29",
+      "chapter_title": "Calculator",
+      "kind": "chapter",
+      "page_start": 117,
+      "page_end": 117,
+      "sections": [],
+      "label": "Chapter 29: Calculator"
+    },
+    {
+      "chapter_number": "30",
+      "chapter_title": "iBooks",
+      "kind": "chapter",
+      "page_start": 118,
+      "page_end": 120,
+      "sections": [
+        {
+          "title": "Get iBooks",
+          "page": 118
+        },
+        {
+          "title": "Read a book",
+          "page": 118
+        },
+        {
+          "title": "Organize books",
+          "page": 119
+        },
+        {
+          "title": "Read PDFs",
+          "page": 120
+        },
+        {
+          "title": "iBooks settings",
+          "page": 120
+        }
+      ],
+      "label": "Chapter 30: iBooks"
+    },
+    {
+      "chapter_number": "31",
+      "chapter_title": "Nike + iPod",
+      "kind": "chapter",
+      "page_start": 121,
+      "page_end": 122,
+      "sections": [
+        {
+          "title": "At a glance",
+          "page": 121
+        },
+        {
+          "title": "Link and calibrate your sensor",
+          "page": 121
+        },
+        {
+          "title": "Work out",
+          "page": 122
+        },
+        {
+          "title": "Nike + iPod Settings",
+          "page": 122
+        }
+      ],
+      "label": "Chapter 31: Nike + iPod"
+    },
+    {
+      "chapter_number": "32",
+      "chapter_title": "Podcasts",
+      "kind": "chapter",
+      "page_start": 123,
+      "page_end": 125,
+      "sections": [
+        {
+          "title": "Podcasts at a glance",
+          "page": 123
+        },
+        {
+          "title": "Get podcasts",
+          "page": 124
+        },
+        {
+          "title": "Control playback",
+          "page": 124
+        },
+        {
+          "title": "Organize your podcasts",
+          "page": 125
+        },
+        {
+          "title": "Podcasts settings",
+          "page": 125
+        }
+      ],
+      "label": "Chapter 32: Podcasts"
+    },
+    {
+      "chapter_number": "A",
+      "chapter_title": "Accessibility",
+      "kind": "appendix",
+      "page_start": 126,
+      "page_end": 146,
+      "sections": [
+        {
+          "title": "Accessibility features",
+          "page": 126
+        },
+        {
+          "title": "Accessibility Shortcut",
+          "page": 127
+        },
+        {
+          "title": "VoiceOver",
+          "page": 127
+        },
+        {
+          "title": "Siri",
+          "page": 137
+        },
+        {
+          "title": "Zoom",
+          "page": 138
+        },
+        {
+          "title": "Invert Colors",
+          "page": 138
+        },
+        {
+          "title": "Speak Selection",
+          "page": 138
+        },
+        {
+          "title": "Speak Auto-text",
+          "page": 138
+        },
+        {
+          "title": "Large, bold, and high-contrast text",
+          "page": 139
+        },
+        {
+          "title": "Reduce onscreen motion",
+          "page": 139
+        },
+        {
+          "title": "On/off switch labels",
+          "page": 139
+        },
+        {
+          "title": "Hearing aids",
+          "page": 139
+        },
+        {
+          "title": "Subtitles and closed captions",
+          "page": 140
+        },
+        {
+          "title": "LED Flash for Alerts",
+          "page": 141
+        },
+        {
+          "title": "Mono audio and balance",
+          "page": 141
+        },
+        {
+          "title": "Call audio routing",
+          "page": 141
+        },
+        {
+          "title": "Assignable ringtones and vibrations",
+          "page": 141
+        },
+        {
+          "title": "Phone noise cancellation",
+          "page": 141
+        },
+        {
+          "title": "Guided Access",
+          "page": 141
+        },
+        {
+          "title": "Switch Control",
+          "page": 142
+        },
+        {
+          "title": "AssistiveTouch",
+          "page": 145
+        },
+        {
+          "title": "TTY support",
+          "page": 146
+        },
+        {
+          "title": "Visual voicemail",
+          "page": 146
+        },
+        {
+          "title": "Widescreen keyboards",
+          "page": 146
+        },
+        {
+          "title": "Large phone keypad",
+          "page": 146
+        },
+        {
+          "title": "Voice Control",
+          "page": 146
+        },
+        {
+          "title": "Accessibility in OS X",
+          "page": 146
+        }
+      ],
+      "label": "Appendix A: Accessibility"
+    },
+    {
+      "chapter_number": "B",
+      "chapter_title": "International Keyboards",
+      "kind": "appendix",
+      "page_start": 147,
+      "page_end": 148,
+      "sections": [
+        {
+          "title": "Use international keyboards",
+          "page": 147
+        },
+        {
+          "title": "Special input methods",
+          "page": 148
+        }
+      ],
+      "label": "Appendix B: International Keyboards"
+    },
+    {
+      "chapter_number": "C",
+      "chapter_title": "iPhone in Business",
+      "kind": "appendix",
+      "page_start": 149,
+      "page_end": 150,
+      "sections": [
+        {
+          "title": "Mail, Contacts, and Calendar",
+          "page": 149
+        },
+        {
+          "title": "Network access",
+          "page": 149
+        },
+        {
+          "title": "Apps",
+          "page": 149
+        }
+      ],
+      "label": "Appendix C: iPhone in Business"
+    },
+    {
+      "chapter_number": "D",
+      "chapter_title": "Safety, Handling, & Support",
+      "kind": "appendix",
+      "page_start": 151,
+      "page_end": 161,
+      "sections": [
+        {
+          "title": "Important safety information",
+          "page": 151
+        },
+        {
+          "title": "Important handling information",
+          "page": 153
+        },
+        {
+          "title": "iPhone Support site",
+          "page": 154
+        },
+        {
+          "title": "Restart or reset iPhone",
+          "page": 154
+        },
+        {
+          "title": "Reset iPhone settings",
+          "page": 154
+        },
+        {
+          "title": "Get information about your iPhone",
+          "page": 155
+        },
+        {
+          "title": "Usage information",
+          "page": 155
+        },
+        {
+          "title": "Disabled iPhone",
+          "page": 155
+        },
+        {
+          "title": "Back up iPhone",
+          "page": 156
+        },
+        {
+          "title": "Update and restore iPhone software",
+          "page": 157
+        },
+        {
+          "title": "Cellular settings",
+          "page": 157
+        },
+        {
+          "title": "Sell or give away iPhone?",
+          "page": 158
+        },
+        {
+          "title": "Learn more, service, and support",
+          "page": 158
+        },
+        {
+          "title": "FCC compliance statement",
+          "page": 159
+        },
+        {
+          "title": "Canadian regulatory statement",
+          "page": 159
+        },
+        {
+          "title": "Disposal and recycling information",
+          "page": 160
+        },
+        {
+          "title": "Apple and the environment",
+          "page": 161
+        }
+      ],
+      "label": "Appendix D: Safety, Handling, & Support"
+    }
+  ]
+}
