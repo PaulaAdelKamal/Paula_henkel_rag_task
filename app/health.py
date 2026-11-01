@@ -22,6 +22,8 @@ TIMEOUT_S = 15.0
 
 @dataclass
 class Check:
+    """Result of one startup check: service, status (OK/FAIL/WARN/SKIP) and a readable detail."""
+
     service: str
     status: str  # OK | FAIL | WARN | SKIP
     detail: str
@@ -29,6 +31,7 @@ class Check:
 
     @property
     def blocking(self) -> bool:
+        """A failed required check blocks the chat; optional ones never do."""
         return self.required and self.status == "FAIL"
 
 
@@ -47,6 +50,7 @@ def redact(text: str, settings: Settings) -> str:
 
 
 def check_openrouter(s: Settings) -> Check:
+    """Validate the key for free (GET /key) and that the configured models are listed."""
     headers = {"Authorization": f"Bearer {s.openrouter_api_key.get_secret_value()}"}
     with httpx.Client(base_url=OPENROUTER_BASE_URL, headers=headers, timeout=TIMEOUT_S) as client:
         resp = client.get("/key")  # validates the key without spending credit
@@ -111,6 +115,7 @@ def check_langfuse(s: Settings) -> Check:
 
 
 def run_check(name: str, fn: Callable[[Settings], Check], s: Settings, required: bool = True):
+    """Run one check; any exception becomes a single redacted FAIL/WARN line."""
     try:
         return fn(s)
     except Exception as exc:  # one line per failure, never a stack trace or a key
@@ -119,6 +124,7 @@ def run_check(name: str, fn: Callable[[Settings], Check], s: Settings, required:
 
 
 def startup_checks(s: Settings) -> list[Check]:
+    """All startup checks in display order (OpenRouter, Qdrant required; Langfuse optional)."""
     return [
         run_check("OpenRouter", check_openrouter, s),
         run_check("Qdrant", check_qdrant, s),

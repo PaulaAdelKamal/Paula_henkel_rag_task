@@ -43,6 +43,7 @@ BATCH_SIZE = 64
 
 
 def free_quota(api_key: str) -> dict:
+    """Today's free-model request quota from OpenRouter (GET /key, costs nothing)."""
     resp = httpx.get(
         f"{OPENROUTER_BASE_URL}/key", headers={"Authorization": f"Bearer {api_key}"}, timeout=20
     )
@@ -57,6 +58,7 @@ def free_quota(api_key: str) -> dict:
 def plan_model(
     slug: str, chunks: list[dict], cfg_hash: str, client, cache: EmbeddingCache, batch_size: int
 ) -> dict:
+    """Dry run for one model: what would be added, deleted and embedded, and how many requests."""
     spec = get_spec(slug)
     name = vectorstore.collection_name(slug, cfg_hash)
     present = vectorstore.existing_ids(client, name) if client.collection_exists(name) else set()
@@ -89,6 +91,7 @@ def ingest_model(
     batch_size: int = BATCH_SIZE,
     max_retries: int = 5,
 ) -> dict:
+    """Embed missing chunks and sync one collection; writes a report unless nothing changed."""
     spec = get_spec(slug)
     name = vectorstore.collection_name(slug, cfg_hash)
     started = time.perf_counter()
@@ -145,6 +148,7 @@ def ingest_model(
 
 
 def main() -> int:
+    """CLI: print the request plan for the chosen models and ingest them with --yes."""
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     who = ap.add_mutually_exclusive_group(required=True)
     who.add_argument("--model", action="append", help="registry slug (repeatable)")

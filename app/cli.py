@@ -26,6 +26,7 @@ from app.observability import configure_logging  # noqa: E402
 
 
 def ask(graph, thread_id: str, question: str, debug: bool) -> dict:
+    """Run one question through the graph in a session and print the reply (and debug info)."""
     out = graph.invoke({"question": question}, {"configurable": {"thread_id": thread_id}})
     print(out["response"])
     if debug:
@@ -40,6 +41,7 @@ def ask(graph, thread_id: str, question: str, debug: bool) -> dict:
 
 
 def main() -> int:
+    """Terminal chat: one-shot questions with -q, otherwise an interactive loop."""
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("-q", "--question", action="append", help="ask non-interactively (repeatable)")
     ap.add_argument("--debug", action="store_true")

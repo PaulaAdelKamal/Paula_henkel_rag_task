@@ -37,6 +37,7 @@ class AnswerUnavailable(RuntimeError):
 
 
 def make_chat_model(settings: Settings, **overrides) -> ChatOpenAI:
+    """ChatOpenAI pointed at OpenRouter, temperature 0, with the free fallback chain."""
     params = {
         "model": settings.chat_model,
         "api_key": settings.openrouter_api_key.get_secret_value(),
@@ -75,12 +76,14 @@ class LLMAnswerer:
     """question + retrieved chunks -> GroundedAnswer (one chat request)."""
 
     def __init__(self, chat_model: ChatOpenAI) -> None:
+        """Compose prompt -> chat model with GroundedAnswer as a function-call schema."""
         structured = chat_model.with_structured_output(
             GroundedAnswer, method="function_calling", include_raw=True
         )
         self._chain = ANSWER_PROMPT | structured
 
     def __call__(self, question: str, chunks: list[dict], config=None) -> GroundedAnswer:
+        """Answer one question from numbered sources; returns the validated structure."""
         result = self._chain.invoke(
             {"question": question, "sources": format_sources(chunks)}, config=config
         )
@@ -91,9 +94,11 @@ class LLMCondenser:
     """Rewrite a follow-up into a standalone question (one chat request, only with history)."""
 
     def __init__(self, chat_model: ChatOpenAI) -> None:
+        """Compose the condense prompt with the chat model."""
         self._chain = CONDENSE_PROMPT | chat_model
 
     def __call__(self, history: Sequence[BaseMessage], question: str, config=None) -> str:
+        """Rewrite the latest message into a standalone question from the transcript."""
         transcript = "\n".join(
             f"{'User' if m.type == 'human' else 'Assistant'}: {m.content}" for m in history
         )

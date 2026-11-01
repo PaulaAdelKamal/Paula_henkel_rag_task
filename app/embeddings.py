@@ -30,6 +30,8 @@ from app.config import OPENROUTER_BASE_URL
 
 @dataclass(frozen=True)
 class EmbeddingSpec:
+    """Everything that differs per embedding model and must be right for good retrieval."""
+
     slug: str  # OpenRouter model id
     dim: int  # output dimension (checked against the API on first call)
     query_prefix: str  # prepended to user queries
@@ -93,6 +95,7 @@ REGISTRY: dict[str, EmbeddingSpec] = {
 
 
 def get_spec(slug: str) -> EmbeddingSpec:
+    """Look up a model in the registry; unknown models fail with the list of known ones."""
     try:
         return REGISTRY[slug]
     except KeyError:
@@ -116,6 +119,7 @@ class EmbeddingCache:
     """
 
     def __init__(self, path: Path) -> None:
+        """Open (or create) the SQLite cache file and its single table."""
         path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.Lock()
         self._db = sqlite3.connect(path, check_same_thread=False)
@@ -123,10 +127,12 @@ class EmbeddingCache:
 
     @staticmethod
     def key(model: str, text: str) -> str:
+        """Cache key: SHA-256 of model id + exact input text (prefix included)."""
         return hashlib.sha256(f"{model}\x00{text}".encode()).hexdigest()
 
     def get_many(self, keys: Sequence[str]) -> dict[str, list[float]]:
         # One static, parameterised query: the keys travel as a single JSON array.
+        """Return the cached vectors for the keys that are present."""
         with self._lock:
             rows = self._db.execute(
                 "SELECT key, vec FROM emb WHERE key IN (SELECT value FROM json_each(?))",
@@ -135,16 +141,19 @@ class EmbeddingCache:
         return {k: list(struct.unpack(f"{len(blob) // 4}f", blob)) for k, blob in rows}
 
     def put_many(self, items: dict[str, list[float]]) -> None:
+        """Store new vectors (float32 blobs), replacing any existing entry."""
         rows = [(k, struct.pack(f"{len(v)}f", *v)) for k, v in items.items()]
         with self._lock:
             self._db.executemany("INSERT OR REPLACE INTO emb (key, vec) VALUES (?, ?)", rows)
             self._db.commit()
 
     def close(self) -> None:
+        """Close the SQLite connection."""
         self._db.close()
 
 
 def _l2(vec: list[float]) -> list[float]:
+    """Scale a vector to unit length (cosine and dot product then agree)."""
     norm = math.sqrt(sum(x * x for x in vec)) or 1.0
     return [x / norm for x in vec]
 
@@ -165,6 +174,7 @@ class OpenRouterEmbeddings(Embeddings):
         transport: httpx.BaseTransport | None = None,
         sleep: Callable[[float], None] = time.sleep,
     ) -> None:
+        """Create the HTTP client for one registry model; counters start at zero."""
         self.spec = spec
         self.batch_size = batch_size
         self.max_retries = max_retries
@@ -185,14 +195,20 @@ class OpenRouterEmbeddings(Embeddings):
     # --- LangChain interface -------------------------------------------------------------
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        """Embed chunks for indexing, with the model's document prefix."""
         return self._embed([self.spec.doc_prefix + t for t in texts])
 
     def embed_query(self, text: str) -> list[float]:
+        """Embed one user question, with the model's query prefix."""
         return self._embed([self.spec.query_prefix + text])[0]
 
     # --- internals ---------------------------------------------------------------------
 
     def _embed(self, inputs: list[str]) -> list[list[float]]:
+        """Serve inputs from the cache; request the rest in batches.
+
+        The batch size is halved whenever the API rejects a batch as too large.
+        """
         keys = [EmbeddingCache.key(self.spec.slug, t) for t in inputs]
         found = self.cache.get_many(keys) if self.cache else {}
         todo = [i for i, k in enumerate(keys) if k not in found]
@@ -214,6 +230,7 @@ class OpenRouterEmbeddings(Embeddings):
         return [found[k] for k in keys]
 
     def _request(self, batch: list[str]) -> list[list[float]]:
+        """POST one batch; retry rate limits and server errors, stop on an exhausted daily quota."""
         for attempt in range(self.max_retries + 1):
             self.requests_made += 1
             try:
@@ -253,6 +270,7 @@ class OpenRouterEmbeddings(Embeddings):
         raise EmbeddingError("unreachable")
 
     def _parse(self, body: dict, n: int) -> list[list[float]]:
+        """Check count and dimension of the returned vectors, record token usage, normalise."""
         data = sorted(body["data"], key=lambda d: d["index"])
         if len(data) != n:
             raise EmbeddingError(f"asked for {n} embeddings, got {len(data)}")
@@ -264,14 +282,18 @@ class OpenRouterEmbeddings(Embeddings):
         return [_l2(v) for v in vectors] if self.spec.normalize else vectors
 
     def close(self) -> None:
+        """Close the HTTP client."""
         self._client.close()
 
 
 class _BatchTooLarge(Exception):
+    """Internal signal: the API rejected the batch size, so retry with a smaller batch."""
+
     pass
 
 
 def _json_or_empty(resp: httpx.Response) -> dict:
+    """The response body as a dict, or {} if it is not JSON."""
     try:
         body = resp.json()
     except ValueError:
@@ -280,6 +302,7 @@ def _json_or_empty(resp: httpx.Response) -> dict:
 
 
 def _retry_after(resp: httpx.Response) -> float | None:
+    """Seconds to wait from a Retry-After header (capped at 60), if present."""
     value = resp.headers.get("retry-after")
     try:
         return min(float(value), 60.0) if value else None
@@ -288,5 +311,6 @@ def _retry_after(resp: httpx.Response) -> float | None:
 
 
 def _looks_like_size_error(message: str) -> bool:
+    """Heuristic: does a 400/413 error message complain about the batch size?"""
     m = message.lower()
     return any(w in m for w in ("too many", "too large", "batch", "maximum", "exceed", "limit"))

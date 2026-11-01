@@ -35,6 +35,8 @@ ANCHOR_TYPES = {"paragraph", "list_item", "table_row", "section", "subsection", 
 
 @dataclass
 class Figure:
+    """One figure region with its anchor text, labels and keep/drop decision."""
+
     figure_id: str  # "p022-f1"
     page: int
     bbox: list[float]
@@ -72,6 +74,7 @@ def merge_boxes(boxes: list[list[float]], gap: float = MERGE_GAP) -> list[list[f
 
 
 def classify(w: float, h: float, is_opener: bool) -> tuple[str, str]:
+    """Kind and keep/drop by size: icons and chapter-opener app icons are dropped."""
     if w < 20 and h < 20:
         return "icon", "drop"
     if is_opener and w < 60 and h < 60:
@@ -142,10 +145,12 @@ def _follows(elements: list[dict], anchor: int | None, i: int) -> bool:
 
 
 def _overlaps(a: list[float], b: list[float], pad: float = 4.0) -> bool:
+    """Do two boxes overlap, allowing some padding?"""
     return a[0] - pad <= b[2] and b[0] - pad <= a[2] and a[1] - pad <= b[3] and b[1] - pad <= a[3]
 
 
 def extract_figures(pdf_path: Path, pages: list[dict]) -> list[Figure]:
+    """Find figure regions on every retrievable page and attach anchors and labels."""
     openers = {p["page"] for p in pages if p["content_type"] == "chapter_opener"}
     retrievable = {"content", "chapter_opener", "legal"}
     figures: list[Figure] = []
@@ -197,11 +202,13 @@ def extract_figures(pdf_path: Path, pages: list[dict]) -> list[Figure]:
 
 
 def load_pages(path: Path = DEFAULT_PAGES) -> list[dict]:
+    """Read the parsed pages."""
     with path.open(encoding="utf-8") as f:
         return [json.loads(line) for line in f]
 
 
 def main() -> None:
+    """CLI: write data/parsed/figures.jsonl and print a summary."""
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--pdf", type=Path, default=DEFAULT_PDF)
     ap.add_argument("--pages", type=Path, default=DEFAULT_PAGES)

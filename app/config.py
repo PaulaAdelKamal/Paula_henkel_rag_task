@@ -18,6 +18,8 @@ OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1"
 
 
 class Settings(BaseSettings):
+    """All configuration, read from environment variables or .env (validated at startup)."""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
@@ -68,6 +70,7 @@ class Settings(BaseSettings):
 
     @property
     def langfuse_enabled(self) -> bool:
+        """Tracing is on only when both Langfuse keys are set."""
         return bool(self.langfuse_public_key and self.langfuse_secret_key)
 
 
@@ -89,6 +92,10 @@ def describe_validation_error(exc: ValidationError) -> str:
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
+    """Load the settings once per process.
+
+    Raises a ConfigError that names bad or missing variables, never their values.
+    """
     try:
         return Settings()  # type: ignore[call-arg]  # values come from the environment
     except ValidationError as exc:

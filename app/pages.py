@@ -20,12 +20,14 @@ _lock = threading.Lock()  # PDFium is not thread-safe; Streamlit serves sessions
 
 @lru_cache(maxsize=1)
 def _document() -> pdfium.PdfDocument:
+    """Open the bundled PDF once per process and close it at exit."""
     doc = pdfium.PdfDocument(str(PDF_PATH))
     atexit.register(doc.close)
     return doc
 
 
 def page_count() -> int:
+    """Number of pages in the bundled PDF."""
     with _lock:
         return len(_document())
 

@@ -30,11 +30,13 @@ PAYLOAD_EXCLUDE = {"embed_text"}
 
 
 def collection_name(embedding_slug: str, chunk_config_hash: str) -> str:
+    """Collection name for a model + chunk config, e.g. iphone_guide__nvidia_…__edb94b731b."""
     slug = re.sub(r"[^a-z0-9]+", "_", embedding_slug.lower()).strip("_")
     return f"{COLLECTION_PREFIX}__{slug}__{chunk_config_hash}"
 
 
 def make_client(url: str, api_key: str | None, timeout: int = 30) -> QdrantClient:
+    """Qdrant client for the cloud cluster."""
     return QdrantClient(url=url, api_key=api_key, timeout=timeout)
 
 
@@ -54,6 +56,7 @@ def ensure_collection(client: QdrantClient, name: str, dim: int) -> bool:
 
 
 def existing_ids(client: QdrantClient, name: str) -> set[str]:
+    """All point ids currently in a collection (scrolled in pages of 1,000)."""
     ids: set[str] = set()
     offset = None
     while True:
@@ -72,6 +75,7 @@ def plan_sync(chunk_ids: Sequence[str], present: set[str]) -> tuple[list[str], l
 
 
 def payload(chunk: dict, embedding_model: str, ingested_at: str | None = None) -> dict:
+    """The stored payload of a chunk: its metadata minus embed_text, plus model and timestamp."""
     out = {k: v for k, v in chunk.items() if k not in PAYLOAD_EXCLUDE}
     out["embedding_model"] = embedding_model
     out["ingested_at"] = ingested_at or datetime.now(UTC).isoformat(timespec="seconds")
@@ -86,6 +90,7 @@ def upsert(
     embedding_model: str,
     batch: int = 64,
 ) -> None:
+    """Write chunks and their vectors as points (id = chunk_id), in batches."""
     now = datetime.now(UTC).isoformat(timespec="seconds")
     points = [
         models.PointStruct(id=c["chunk_id"], vector=v, payload=payload(c, embedding_model, now))
@@ -96,6 +101,7 @@ def upsert(
 
 
 def delete(client: QdrantClient, name: str, ids: Sequence[str]) -> None:
+    """Remove points by id (stale chunks after a re-chunk)."""
     if ids:
         client.delete(name, points_selector=models.PointIdsList(points=list(ids)), wait=True)
 
@@ -103,6 +109,7 @@ def delete(client: QdrantClient, name: str, ids: Sequence[str]) -> None:
 def search(
     client: QdrantClient, name: str, vector: list[float], k: int, query_filter=None
 ) -> list[models.ScoredPoint]:
+    """Nearest chunks to a query vector, with payloads and cosine scores."""
     return client.query_points(
         name, query=vector, limit=k, with_payload=True, query_filter=query_filter
     ).points
@@ -110,12 +117,15 @@ def search(
 
 @dataclass
 class CollectionStatus:
+    """What a health check needs to know about one collection."""
+
     name: str
     exists: bool
     points: int = 0
     dim: int | None = None
 
     def problems(self, expected_dim: int | None = None, expected_points: int | None = None):
+        """Human-readable problems (missing, empty, wrong size or dimension); [] if healthy."""
         if not self.exists:
             return [f"collection {self.name} does not exist"]
         out = []
@@ -129,6 +139,7 @@ class CollectionStatus:
 
 
 def status(client: QdrantClient, name: str) -> CollectionStatus:
+    """Inspect a collection: existence, point count and vector dimension."""
     if not client.collection_exists(name):
         return CollectionStatus(name, exists=False)
     info = client.get_collection(name)

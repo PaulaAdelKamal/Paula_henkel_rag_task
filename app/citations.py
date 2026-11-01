@@ -15,20 +15,25 @@ LEGAL = "Legal notices (back page)"
 
 @dataclass(frozen=True)
 class Citation:
+    """One user-facing citation: the pages a chunk spans and its section path."""
+
     pages: tuple[int, ...]
     section: str  # "Chapter 3: Basics > Use apps > Multitasking"
 
     @property
     def page_label(self) -> str:
+        """ "Page 22" for one page, "Pages 12–13" for a range."""
         if len(self.pages) == 1:
             return f"Page {self.pages[0]}"
         return f"Pages {self.pages[0]}–{self.pages[-1]}"
 
     def render(self) -> str:
+        """The line shown under Sources: "Page 22 · Chapter 3: Basics > …"."""
         return f"{self.page_label} · {self.section}"
 
 
 def citation_for(chunk: dict) -> Citation:
+    """Build the citation of one chunk from its metadata (never from model output)."""
     path = chunk.get("section_path") or []
     section = " > ".join(path) if path else LEGAL
     return Citation(pages=tuple(chunk.get("pages") or [chunk["page"]]), section=section)
@@ -46,12 +51,14 @@ def unique_citations(chunks: list[dict], by_page: bool = True) -> list[Citation]
 
 
 def render_answer(answer: str, used: list[dict]) -> str:
+    """Answer text followed by a **Sources** block listing the chunks the model used."""
     lines = [answer.strip(), "", "**Sources**"]
     lines += [f"- {c.render()}" for c in unique_citations(used)]
     return "\n".join(lines)
 
 
 def render_refusal(message: str, searched: list[dict], limit: int = 3) -> str:
+    """Refusal text plus the closest sections searched, labelled as not being sources."""
     lines = [message]
     closest = unique_citations(searched, by_page=False)[:limit]
     if closest:

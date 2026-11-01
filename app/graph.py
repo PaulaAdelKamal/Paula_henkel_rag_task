@@ -51,7 +51,11 @@ MAX_QUESTION_CHARS = 2000
 
 
 class Retriever(Protocol):
-    def __call__(self, query: str, k: int) -> list[dict]: ...
+    """Anything that turns a query into ranked chunk payloads (real: Qdrant; tests: stubs)."""
+
+    def __call__(self, query: str, k: int) -> list[dict]:
+        """Return up to k chunk payloads with a 'score', best first."""
+        ...
 
 
 Answerer = Callable[..., GroundedAnswer]  # (question, chunks, config=None)
@@ -59,6 +63,8 @@ Condenser = Callable[..., str]  # (history, question, config=None)
 
 
 class RAGState(TypedDict, total=False):
+    """The graph's state: persisted conversation plus this turn's working fields."""
+
     messages: Annotated[list[AnyMessage], add_messages]  # persisted conversation
     question: str  # this turn's raw user message
     standalone_question: str
@@ -97,11 +103,18 @@ def _prepare(state: RAGState) -> dict:
 
 
 def _route_prepare(state: RAGState) -> str:
+    """A blank question ends the turn immediately; anything else goes to condense."""
     return "respond_empty" if not state["question"] else "condense"
 
 
 def _make_condense(condenser: Condenser):
+    """Build the condense node around a condenser function."""
+
     def condense(state: RAGState, config: RunnableConfig) -> dict:
+        """Rewrite a follow-up into a standalone question from the last turns.
+
+        Does nothing on the first turn; a failed rewrite keeps the raw question.
+        """
         history: Sequence[BaseMessage] = state.get("messages", [])[-HISTORY_MESSAGES:]
         if not history:
             return {}
@@ -133,6 +146,7 @@ def classify_error(exc: Exception) -> str:
 
 
 def _error_update(exc: Exception) -> dict:
+    """State update for a failed step: decision 'error' plus classified detail."""
     return {
         "decision": "error",
         "error": f"{type(exc).__name__}: {str(exc)[:300]}",
@@ -141,7 +155,10 @@ def _error_update(exc: Exception) -> dict:
 
 
 def _make_retrieve(retriever: Retriever, k: int):
+    """Build the retrieve node around a retriever."""
+
     def retrieve(state: RAGState) -> dict:
+        """Fetch the top-k chunks for the standalone question; failures become an error state."""
         try:
             return {"retrieved": retriever(state["standalone_question"], k)}
         except Exception as exc:  # quota, network or Qdrant failure: a clear message, no crash
@@ -151,7 +168,10 @@ def _make_retrieve(retriever: Retriever, k: int):
 
 
 def _make_route_retrieve(threshold: float):
+    """Build the router that runs after retrieval (relevance gate)."""
+
     def route(state: RAGState) -> str:
+        """Errors -> respond_error; nothing relevant -> not_in_document; otherwise generate."""
         if state.get("decision") == "error":
             return "respond_error"
         hits = state["retrieved"]
@@ -163,7 +183,10 @@ def _make_route_retrieve(threshold: float):
 
 
 def _make_generate(answerer: Answerer):
+    """Build the generate node around an answerer."""
+
     def generate(state: RAGState, config: RunnableConfig) -> dict:
+        """Ask for a structured answer, keep only real source numbers, refuse if none remain."""
         chunks = state["retrieved"]
         try:
             result = answerer(state["standalone_question"], chunks, config=config)
@@ -185,16 +208,19 @@ def _make_generate(answerer: Answerer):
 
 
 def _route_generate(state: RAGState) -> str:
+    """Send the turn to the answer, refusal or error responder."""
     return {"answer": "respond_answer", "error": "respond_error"}.get(
         state["decision"], "not_in_document"
     )
 
 
 def _turn(state: RAGState, reply: str) -> list[AnyMessage]:
+    """The two messages (user question, assistant reply) appended to the conversation memory."""
     return [HumanMessage(state["question"]), AIMessage(reply)]
 
 
 def _respond_answer(state: RAGState) -> dict:
+    """Final state for an answer: rendered text with Sources and structured citations."""
     cits = citations.unique_citations(state["used"])
     return {
         "decision": "answer",
@@ -205,6 +231,7 @@ def _respond_answer(state: RAGState) -> dict:
 
 
 def _not_in_document(state: RAGState) -> dict:
+    """Final state for a refusal: 'not in the guide' plus the closest sections searched."""
     return {
         "decision": "not_in_document",
         "citations": [],
@@ -221,6 +248,7 @@ ERROR_MESSAGES = {
 
 
 def _respond_error(state: RAGState) -> dict:
+    """Final state for a failure: a plain message chosen by error kind."""
     message = ERROR_MESSAGES.get(state.get("error_kind", ""), ANSWER_FAILED)
     return {
         "decision": "error",
@@ -230,6 +258,7 @@ def _respond_error(state: RAGState) -> dict:
 
 
 def _respond_empty(state: RAGState) -> dict:
+    """Final state for a blank question: ask the user to type one (no API calls)."""
     return {"decision": "empty", "response": EMPTY_QUESTION}
 
 
@@ -245,6 +274,7 @@ def build_graph(
     relevance_threshold: float = 0.0,
     checkpointer: Any = None,
 ):
+    """Wire the nodes and edges into a compiled LangGraph with a checkpointer for memory."""
     g = StateGraph(RAGState)
     g.add_node("prepare", _prepare)
     g.add_node("condense", _make_condense(condenser))
@@ -274,20 +304,24 @@ class QdrantRetriever:
     """Embed the query with the collection's model and return payloads + scores."""
 
     def __init__(self, embedder: OpenRouterEmbeddings, client, collection: str) -> None:
+        """Keep the embedder, the Qdrant client and the collection to search."""
         self.embedder, self.client, self.collection = embedder, client, collection
 
     def __call__(self, query: str, k: int) -> list[dict]:
+        """Embed the query with the collection's model and return payloads plus scores."""
         hits = vectorstore.search(self.client, self.collection, self.embedder.embed_query(query), k)
         return [dict(h.payload or {}) | {"score": h.score, "chunk_id": str(h.id)} for h in hits]
 
 
 def collection_for(settings: Settings) -> str:
+    """The collection to query: QDRANT_COLLECTION if set, else derived from model + chunk config."""
     return settings.qdrant_collection or vectorstore.collection_name(
         settings.embedding_model, settings.chunk_config_hash
     )
 
 
 def _query_cache(settings: Settings) -> EmbeddingCache | None:
+    """An embedding cache for repeated questions, or None if the filesystem is read-only."""
     try:
         return EmbeddingCache(Path(settings.cache_dir) / "embeddings.sqlite")
     except Exception:  # read-only filesystem in a container: run without a cache

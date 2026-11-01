@@ -65,6 +65,7 @@ def load_app():
 
 
 def show_startup_error(problems: list[str]) -> None:
+    """Readable error screen when a required service is not ready, then stop the script."""
     st.title("📘 iPhone Guide Assistant")
     st.error("The assistant can't start because a required service isn't ready.")
     for p in problems:
@@ -80,12 +81,14 @@ def take_starter() -> None:
 
 
 def send_feedback(tracer: Tracer, key: str, trace_id: str | None) -> None:
+    """Thumbs up/down callback: send the value as a Langfuse score on that turn's trace."""
     value = st.session_state.get(key)
     if value is not None:
         tracer.score_feedback(trace_id, value)
 
 
 def render_turn(msg: dict, tracer: Tracer | None, index: int) -> None:
+    """Show one assistant reply: text with Sources, cited passages, page preview, feedback."""
     st.markdown(msg["content"])
     used = msg.get("used") or []
     if used:
@@ -109,6 +112,7 @@ def render_turn(msg: dict, tracer: Tracer | None, index: int) -> None:
 
 
 def run_turn(graph, tracer: Tracer, question: str) -> dict:
+    """Run the graph for one question, streaming node progress, and return the reply record."""
     session = st.session_state.thread_id
     trace_id = tracer.new_trace_id()
     config = {"configurable": {"thread_id": session}} | tracer.run_config(session)
@@ -131,6 +135,7 @@ def run_turn(graph, tracer: Tracer, question: str) -> dict:
 
 
 def main() -> None:
+    """The page: startup check, sidebar, conversation history, starter questions and chat input."""
     settings, checks, graph, tracer = load_app()
     if graph is None:
         show_startup_error(checks)

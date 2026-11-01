@@ -29,6 +29,7 @@ SANITY_PAGE = 22
 
 
 def main() -> int:
+    """Check every collection (count, dimension, sanity query) and report OK/WARN/FAIL."""
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--model", action="append", help="registry slug (default: all)")
     ap.add_argument("--query", default=SANITY_QUERY)

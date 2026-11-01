@@ -74,6 +74,7 @@ def clean(text: str) -> str:
 
 
 def title_key(text: str) -> str:
+    """Normalised form of a title for matching headings, TOC entries and link texts."""
     return clean(text).casefold().rstrip(" .:")
 
 
@@ -82,12 +83,16 @@ def title_key(text: str) -> str:
 
 @dataclass
 class TocSection:
+    """A section entry of the printed table of contents."""
+
     title: str
     page: int
 
 
 @dataclass
 class TocChapter:
+    """A chapter or appendix of the printed TOC with its page range and sections."""
+
     chapter_number: str  # "1".."32" or "A".."D"
     chapter_title: str
     kind: str  # "chapter" | "appendix"
@@ -97,6 +102,7 @@ class TocChapter:
 
     @property
     def label(self) -> str:
+        """ "Chapter 3: Basics" or "Appendix A: Accessibility"."""
         prefix = "Chapter" if self.kind == "chapter" else "Appendix"
         return f"{prefix} {self.chapter_number}: {self.chapter_title}"
 
@@ -105,6 +111,8 @@ class TocChapter:
 class Element:
     # chapter_title | section | subsection | paragraph | list_item | table_header
     # | table_row | figure_labels
+    """One unit of page content in reading order (heading, paragraph, row, labels…)."""
+
     type: str
     text: str
     bbox: list[float]
@@ -118,6 +126,8 @@ class Element:
 
 @dataclass
 class Xref:
+    """A resolved cross-reference ('See X on page N' or a link-styled title)."""
+
     label: str
     target_page: int
     resolved_by: str  # "page_number" | "title"
@@ -126,6 +136,8 @@ class Xref:
 
 @dataclass
 class Page:
+    """Everything parsed from one PDF page; one line of pages.jsonl."""
+
     pdf_page_index: int  # 0-based index in the PDF file
     page: int  # page number used in citations (== printed page number)
     printed_page: int | None  # number read from the footer (None if the page has no footer)
@@ -148,18 +160,22 @@ class Page:
 
 
 def _is_myriad(span: dict) -> bool:
+    """Body fonts are Myriad; diagram callouts use Helvetica."""
     return "Myriad" in span["font"]
 
 
 def _is_callout(span: dict) -> bool:
+    """Small non-Myriad text inside figures (diagram callout labels)."""
     return not _is_myriad(span) and "Symbol" not in span["font"] and span["size"] <= 8.0
 
 
 def _line_text(line: dict) -> str:
+    """Text of a line without the Apple-logo glyph font."""
     return "".join(s["text"] for s in line["spans"] if "AppleIcon" not in s["font"])
 
 
 def _line_role(line: dict) -> str:
+    """Classify a line by typography (footer, heading levels, callout, table header, body…)."""
     spans = [s for s in line["spans"] if s["text"].strip()]
     if not spans:
         return "empty"
@@ -188,6 +204,7 @@ def _line_role(line: dict) -> str:
 
 def _is_bullet_line(line: dict) -> bool:
     # The PDF draws a Myriad "•" and a Symbol-font "•" on top of each other.
+    """Does the line start with a bullet?"""
     return clean(_line_text(line)).startswith("•")
 
 
@@ -210,6 +227,7 @@ def _lead_in(spans: list[dict]) -> str | None:
 
 def _note(spans: list[dict]) -> str | None:
     # "Important:" and "WARNING:" are blue italic, "Note:" is dark italic.
+    """'Important', 'WARNING' or 'Note' if the paragraph starts with that italic label."""
     spans = [s for s in spans if s["text"].strip()]
     if spans and "Italic" in spans[0]["font"]:
         word = clean(spans[0]["text"]).rstrip(":")
@@ -219,6 +237,7 @@ def _note(spans: list[dict]) -> str | None:
 
 
 def _union(bboxes: list[list[float]]) -> list[float]:
+    """Bounding box enclosing several boxes."""
     return [
         round(min(b[0] for b in bboxes), 1),
         round(min(b[1] for b in bboxes), 1),
@@ -249,6 +268,7 @@ def _rows_by_y(page: pymupdf.Page, tol: float = 2.5) -> list[str]:
 
 
 def parse_toc(doc: pymupdf.Document) -> list[TocChapter]:
+    """Read chapters, appendices and sections (with pages) from the TOC pages 2–7."""
     chapters: list[TocChapter] = []
     for pno in TOC_PAGES:
         for row in _rows_by_y(doc[pno - 1]):
@@ -275,6 +295,7 @@ def parse_toc(doc: pymupdf.Document) -> list[TocChapter]:
 
 
 def chapter_for_page(toc: list[TocChapter], page: int) -> TocChapter | None:
+    """The TOC chapter whose page range contains a page."""
     for ch in toc:
         if ch.page_start <= page <= ch.page_end:
             return ch
@@ -285,6 +306,7 @@ def chapter_for_page(toc: list[TocChapter], page: int) -> TocChapter | None:
 
 
 def _parse_footer(lines: list[dict]) -> tuple[int | None, str | None, str | None]:
+    """Printed page number and chapter from the running footer, if present."""
     text = clean(" ".join(_line_text(ln) for ln in lines))
     m = _FOOTER.match(text)
     if not m:
@@ -310,6 +332,7 @@ def _assemble_tables(elements: list[Element]) -> list[Element]:
     row_meta: Element | None = None
 
     def flush_row() -> None:
+        """Emit the collected lines of one table row as a table_row element."""
         nonlocal row_lines, row_meta
         if row_lines and row_meta is not None:
             cells = [""] * max(len(col_x), 1)
@@ -382,6 +405,7 @@ LIST_TEXT_X = 113.0  # bullet text starts ~8pt right of the 105pt margin (glyph 
 
 
 def _geometry(lines: list[dict]) -> list[list]:
+    """Line geometry kept for table and continuation logic: [x0, y0, y1, text]."""
     return [[ln["bbox"][0], ln["bbox"][1], ln["bbox"][3], clean(_line_text(ln))] for ln in lines]
 
 
@@ -415,11 +439,13 @@ class _State:
     """Section context carried across pages."""
 
     def __init__(self) -> None:
+        """No chapter, section or subsection yet."""
         self.chapter: TocChapter | None = None
         self.section: str | None = None
         self.subsection: str | None = None
 
     def path(self) -> list[str]:
+        """Current section path, e.g. [chapter, section, subsection]."""
         out = [self.chapter.label] if self.chapter else []
         return out + [p for p in (self.section, self.subsection) if p]
 
@@ -428,6 +454,7 @@ class _PageBuilder:
     """Turns the classified lines of one page into Elements, in reading order."""
 
     def __init__(self, state: _State) -> None:
+        """Start an empty page; the section state is shared across pages."""
         self.state = state
         self.elements: list[Element] = []
         self.footer_lines: list[dict] = []
@@ -437,11 +464,13 @@ class _PageBuilder:
         self.in_table = False  # set by a table header, cleared by headings and normal text
 
     def add_block(self, block: dict) -> None:
+        """Add every line of a PyMuPDF block, then close the open paragraph."""
         for line in block["lines"]:
             self.add_line(line)
         self.flush_para()  # a paragraph never continues across blocks (see _continues_previous)
 
     def add_line(self, line: dict) -> None:
+        """Route one line by role: skip, footer, callout label, heading or body text."""
         role = _line_role(line)
         if role in {"empty", "rotated", "chapter_number", "callout_halo", "icon"}:
             return
@@ -467,6 +496,7 @@ class _PageBuilder:
         self.para_lines.append(line)
 
     def add_heading(self, role: str, text: str, line: dict) -> None:
+        """Close open content, update the section state and emit the heading."""
         self.flush_para()
         self.flush_labels()
         if role == "section":
@@ -485,6 +515,7 @@ class _PageBuilder:
         )
 
     def flush_labels(self) -> None:
+        """Emit collected callout labels as one figure_labels element."""
         if not self.labels:
             return
         self.elements.append(
@@ -498,6 +529,7 @@ class _PageBuilder:
         self.labels = []
 
     def flush_para(self) -> None:
+        """Emit the open paragraph, list item or table-cell fragment (or merge a continuation)."""
         lines, kind = self.para_lines, self.para_kind
         self.para_lines, self.para_kind = [], "paragraph"
         if not lines:
@@ -534,6 +566,7 @@ class _PageBuilder:
 
 
 def _content_type(page_no: int, page_count: int, toc: list[TocChapter]) -> str:
+    """front_matter, toc, legal, chapter_opener or content, from the page number."""
     if page_no in COVER_PAGES:
         return "front_matter"
     if page_no in TOC_PAGES:
@@ -546,6 +579,7 @@ def _content_type(page_no: int, page_count: int, toc: list[TocChapter]) -> str:
 
 
 def parse_page(doc: pymupdf.Document, index: int, toc: list[TocChapter], state: _State) -> Page:
+    """Parse one page into elements, footer metadata, images and flags."""
     page_obj = doc[index]
     page_no = index + 1
     content_type = _content_type(page_no, doc.page_count, toc)
@@ -639,6 +673,7 @@ def heading_index(pages: list[Page], toc: list[TocChapter]) -> dict[str, tuple[i
 
 
 def extract_xrefs(text: str) -> list[tuple[str, int]]:
+    """All 'see X on page N' and 'see page N' references in a text."""
     refs = [
         (clean(m.group("label")).rstrip(","), int(m.group("page"))) for m in _XREF.finditer(text)
     ]
@@ -666,6 +701,7 @@ def _blue_titles(page_obj: pymupdf.Page) -> list[str]:
 
 
 def attach_xrefs(doc: pymupdf.Document, pages: list[Page], toc: list[TocChapter]) -> None:
+    """Resolve each page's cross-references to target sections via the heading index."""
     index = heading_index(pages, toc)
     for p in pages:
         if p.content_type in {"toc", "front_matter"}:
@@ -707,6 +743,7 @@ def attach_xrefs(doc: pymupdf.Document, pages: list[Page], toc: list[TocChapter]
 
 
 def parse_document(pdf_path: Path = DEFAULT_PDF) -> tuple[list[TocChapter], list[Page]]:
+    """Parse the whole PDF: TOC first, then every page in order, then cross-references."""
     with pymupdf.open(pdf_path) as doc:
         toc = parse_toc(doc)
         state = _State()
@@ -716,6 +753,7 @@ def parse_document(pdf_path: Path = DEFAULT_PDF) -> tuple[list[TocChapter], list
 
 
 def write_outputs(toc: list[TocChapter], pages: list[Page], pdf_path: Path, out_dir: Path) -> None:
+    """Write pages.jsonl and toc.json (with source hash and parser version)."""
     out_dir.mkdir(parents=True, exist_ok=True)
     with (out_dir / "pages.jsonl").open("w", encoding="utf-8", newline="\n") as f:
         for p in pages:
@@ -735,6 +773,7 @@ def write_outputs(toc: list[TocChapter], pages: list[Page], pdf_path: Path, out_
 
 
 def main() -> None:
+    """CLI: parse the PDF and print a summary."""
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--pdf", type=Path, default=DEFAULT_PDF)
     ap.add_argument("--out", type=Path, default=DEFAULT_OUT)

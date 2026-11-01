@@ -56,15 +56,19 @@ _ID_NAMESPACE = uuid.UUID("6f1d3b5e-2c4a-4f7e-9a51-1b8e0c6d7a90")
 
 @lru_cache(maxsize=1)
 def _tokenizer() -> BertWordPieceTokenizer:
+    """The BERT WordPiece tokenizer from the committed vocabulary (loaded once)."""
     return BertWordPieceTokenizer(str(VOCAB), lowercase=True)
 
 
 def count_tokens(text: str) -> int:
+    """Number of BERT tokens in a text (the unit of every size limit here)."""
     return len(_tokenizer().encode(text, add_special_tokens=False).ids)
 
 
 @dataclass(frozen=True)
 class ChunkConfig:
+    """Every chunking choice; hashed into chunk_config_hash and the collection name."""
+
     strategy: Literal["structure", "naive"] = "structure"
     size: int = 350  # max tokens of the embedded text (header + body)
     overlap: int = 0  # tokens repeated when a unit is split by size
@@ -73,6 +77,7 @@ class ChunkConfig:
     min_size: int = 64  # a subsection boundary closes the chunk only above this size
 
     def config_hash(self, parser_version: str) -> str:
+        """Short stable hash of this config plus chunker and parser versions."""
         payload = json.dumps(
             asdict(self) | {"chunker": CHUNKER_VERSION, "parser": parser_version},
             sort_keys=True,
@@ -82,6 +87,8 @@ class ChunkConfig:
 
 @dataclass
 class Chunk:
+    """One retrieval chunk with all the metadata stored in Qdrant."""
+
     chunk_id: str
     chunk_config_hash: str
     source: str
@@ -113,6 +120,8 @@ class Chunk:
 
 @dataclass
 class _Item:
+    """One parsed element in reading order, with its page, index and token count."""
+
     page: int
     index: int
     element: dict
@@ -125,6 +134,7 @@ class _Item:
 def load_inputs(
     pages_path: Path = PAGES, figures_path: Path = FIGURES, toc_path: Path = TOC
 ) -> tuple[list[dict], dict[tuple[int, int], list[str]], str]:
+    """Read parsed pages, the figure anchors and the parser version."""
     with pages_path.open(encoding="utf-8") as f:
         pages = [json.loads(line) for line in f]
     figures: dict[tuple[int, int], list[str]] = {}
@@ -140,6 +150,7 @@ def load_inputs(
 
 
 def _items(pages: list[dict], figure_mode: str) -> list[_Item]:
+    """Retrievable elements in reading order (TOC and cover excluded; labels optional)."""
     out = []
     for p in pages:
         if p["content_type"] not in RETRIEVABLE:
@@ -155,6 +166,7 @@ def _items(pages: list[dict], figure_mode: str) -> list[_Item]:
 
 
 def _header(path: list[str], subsections: list[str]) -> str:
+    """Contextual header: guide > chapter > section > subsection(s)."""
     parts = [DOC_TITLE, *path[:2]]
     if subsections:
         parts.append(", ".join(subsections))
@@ -170,6 +182,10 @@ def _make_chunk(
     text: str | None = None,
     partial: bool = False,
 ) -> Chunk:
+    """Assemble a Chunk from items.
+
+    Sets text, header, pages, sections, figures, cross-references and a deterministic id.
+    """
     body_items = [it for it in items if it.element["type"] not in HEADING_TYPES] or items
     first = body_items[0].element
     path = first["section_path"]
@@ -230,17 +246,20 @@ def _make_chunk(
 
 
 def _chapter(it: _Item) -> str | None:
+    """Chapter label of an item (first entry of its section path)."""
     sp = it.element["section_path"]
     return sp[0] if sp else None
 
 
 def _section(it: _Item) -> tuple[str, ...]:
+    """Chapter + section of an item (the hard chunk boundary)."""
     return tuple(it.element["section_path"][:2])
 
 
 def chunk_structure(
     pages: list[dict], figures: dict[tuple[int, int], list[str]], cfg: ChunkConfig, cfg_hash: str
 ) -> list[Chunk]:
+    """Structure-aware chunking: pack whole elements within section boundaries."""
     pages_by_no = {p["page"]: p for p in pages}
     groups: list[list[_Item] | Chunk] = []  # Chunk = pre-built pieces of an oversized element
     started_by_size: list[bool] = []  # was this group opened because the previous one was full?
@@ -320,6 +339,7 @@ def chunk_structure(
 
 
 def _has_body(items: list[_Item]) -> bool:
+    """Does a group contain anything besides headings?"""
     return any(it.element["type"] not in HEADING_TYPES for it in items)
 
 
@@ -374,6 +394,7 @@ def _split_oversized(
 def chunk_naive(
     pages: list[dict], figures: dict[tuple[int, int], list[str]], cfg: ChunkConfig, cfg_hash: str
 ) -> list[Chunk]:
+    """Baseline: recursive splitter over the concatenated text, mapped back to elements."""
     pages_by_no = {p["page"]: p for p in pages}
     items = _items(pages, cfg.figure_mode)
     full, spans = "", []  # spans[i] = (start, end) offsets of items[i] in `full`
@@ -412,6 +433,7 @@ GRID = [
 
 
 def build_chunks(cfg: ChunkConfig) -> tuple[str, list[Chunk]]:
+    """Chunk the parsed pages with one config; returns (config hash, chunks)."""
     pages, figures, parser_version = load_inputs()
     cfg_hash = cfg.config_hash(parser_version)
     fn = chunk_structure if cfg.strategy == "structure" else chunk_naive
@@ -419,6 +441,7 @@ def build_chunks(cfg: ChunkConfig) -> tuple[str, list[Chunk]]:
 
 
 def stats(chunks: list[Chunk]) -> dict:
+    """Size and coverage statistics of a chunk set (written next to the chunks)."""
     toks = sorted(c.embed_token_count for c in chunks)
     per_page: dict[int, int] = {}
     for c in chunks:
@@ -441,6 +464,7 @@ def stats(chunks: list[Chunk]) -> dict:
 
 
 def _crosses(chunk: Chunk) -> bool:
+    """Does a chunk contain elements from more than one chapter?"""
     pages = json_pages()
     chapters = {pages[pg]["chapter_number"] for pg, _ in chunk.element_refs}
     return len(chapters) > 1
@@ -448,11 +472,13 @@ def _crosses(chunk: Chunk) -> bool:
 
 @lru_cache(maxsize=1)
 def json_pages() -> dict[int, dict]:
+    """Parsed pages by page number (cached)."""
     with PAGES.open(encoding="utf-8") as f:
         return {p["page"]: p for p in map(json.loads, f)}
 
 
 def write_chunks(cfg: ChunkConfig, out_dir: Path = OUT_DIR) -> dict:
+    """Build one config and write <hash>.jsonl plus <hash>.config.json."""
     cfg_hash, chunks = build_chunks(cfg)
     out_dir.mkdir(parents=True, exist_ok=True)
     with (out_dir / f"{cfg_hash}.jsonl").open("w", encoding="utf-8", newline="\n") as f:
@@ -466,6 +492,7 @@ def write_chunks(cfg: ChunkConfig, out_dir: Path = OUT_DIR) -> dict:
 
 
 def main() -> None:
+    """CLI: build the default config, one custom config, or the whole grid."""
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--grid", action="store_true", help="build every config of the Step 3 grid")
     ap.add_argument("--strategy", choices=["structure", "naive"], default="structure")

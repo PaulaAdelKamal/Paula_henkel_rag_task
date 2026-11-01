@@ -54,7 +54,10 @@ def git_sha() -> str:
 
 
 class Tracer:
+    """Langfuse tracing for chat turns; every method is a safe no-op when tracing is off."""
+
     def __init__(self, settings: Settings) -> None:
+        """Create the Langfuse client if keys are set; any failure just disables tracing."""
         self.settings = settings
         self.enabled = False
         self._client = None
@@ -77,6 +80,7 @@ class Tracer:
 
     @property
     def tags(self) -> list[str]:
+        """Trace tags: environment, embedding model, chunk config, prompt version, git sha."""
         s = self.settings
         return [
             f"env:{s.app_env}",
@@ -87,6 +91,7 @@ class Tracer:
         ]
 
     def new_trace_id(self) -> str | None:
+        """A fresh trace id for the next turn (None when tracing is off)."""
         if not self.enabled:
             return None
         try:
@@ -149,6 +154,7 @@ class Tracer:
             log.warning("could not send feedback score (%s)", type(exc).__name__)
 
     def flush(self) -> None:
+        """Send buffered spans now (Streamlit sessions are short-lived)."""
         if self.enabled:
             try:
                 self._client.flush()
@@ -157,15 +163,22 @@ class Tracer:
 
 
 class _NoopRecorder:
+    """Recorder used when tracing is off: records nothing."""
+
     def record(self, state: dict) -> None:
+        """Do nothing."""
         pass
 
 
 class _SpanRecorder:
+    """Writes a finished turn's results onto its Langfuse root span."""
+
     def __init__(self, span) -> None:
+        """Keep the root span of the turn (may be None if Langfuse failed)."""
         self.span = span
 
     def record(self, state: dict) -> None:
+        """Store the response and retrieval metadata on the span; never raises."""
         if self.span is None:
             return
         try:
