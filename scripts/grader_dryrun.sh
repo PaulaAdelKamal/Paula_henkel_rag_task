@@ -4,7 +4,7 @@
 #   scripts/grader_dryrun.sh [REPO] [ENV_FILE]
 #     REPO      git URL or path to clone (default: this repository, i.e. its committed HEAD)
 #     ENV_FILE  .env to use (default: ./.env)
-#   PORT=8000 KEEP=1 CA_BUNDLE=path/to/bundle.pem  (optional environment overrides)
+#   PORT=8000 KEEP=1 CA_BUNDLE=path/to/bundle.pem SKIP_SMOKE=1  (optional overrides)
 #
 # Steps: 1 git clone -> 2 copy .env -> 3 docker build -t chatbot:1.0 . ->
 #        4 docker run -p PORT:PORT --env-file .env chatbot:1.0 -> 5 open localhost:PORT
@@ -58,7 +58,11 @@ until curl -fsS "http://localhost:$PORT/_stcore/health" >/dev/null 2>&1; do
 done
 curl -fsS "http://localhost:$PORT/" | grep -q "<title>" && echo "UI is served on http://localhost:$PORT"
 
-echo "[smoke] one question through the real UI inside the container"
-docker exec -i "$NAME" python - < "$ROOT/scripts/smoke_ui.py"
+if [ "${SKIP_SMOKE:-0}" = "1" ]; then
+    echo "[smoke] skipped (SKIP_SMOKE=1, e.g. CI without API keys)"
+else
+    echo "[smoke] one question through the real UI inside the container"
+    docker exec -i "$NAME" python - < "$ROOT/scripts/smoke_ui.py"
+fi
 docker image inspect chatbot:1.0 --format 'image size: {{.Size}} bytes'
 echo "DRY RUN PASSED"

@@ -53,6 +53,9 @@ jobs:
           curl -fsS http://localhost:8000/ | grep -q "<title>"
           test "$(docker inspect -f '{{.State.Running}}' app)" = "true"
           docker logs app | tail -n 20
+          docker rm -f app
+      - name: Grader dry-run script (clean clone -> build -> run -> healthy; no keys, so no smoke)
+        run: SKIP_SMOKE=1 PORT=8001 scripts/grader_dryrun.sh "$PWD" "$PWD/ci.env"
 
   secret-scan:
     runs-on: ubuntu-latest
