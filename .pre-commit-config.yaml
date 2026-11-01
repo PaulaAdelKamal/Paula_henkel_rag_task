@@ -27,6 +27,14 @@ repos:
         pass_filenames: false
         stages: [pre-push]
 
+      # --- Dependencies ---
+      - id: uv-lock-check
+        name: uv.lock matches pyproject.toml
+        entry: uv lock --check
+        language: system
+        files: ^(pyproject\.toml|uv\.lock)$
+        pass_filenames: false
+
       # --- Hygiene ---
       - id: detect-private-key
         name: detect private key
