@@ -67,3 +67,11 @@ def test_secrets_are_masked_in_repr(clean_env):
     text = repr(make_settings())
     assert REQUIRED["OPENROUTER_API_KEY"] not in text
     assert REQUIRED["QDRANT_API_KEY"] not in text
+
+
+def test_chat_fallbacks_keep_only_free_models(clean_env):
+    for k, v in REQUIRED.items():
+        clean_env.setenv(k, v)
+    clean_env.setenv("CHAT_FALLBACK_MODELS", "a/free-one:free, openai/gpt-5.6-terra ,b/two:free")
+    s = make_settings()
+    assert s.chat_models == [s.chat_model, "a/free-one:free", "b/two:free"]
