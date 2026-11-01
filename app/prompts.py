@@ -65,6 +65,14 @@ EMPTY_QUESTION = f"Please type a question about the {GUIDE}."
 ANSWER_FAILED = (
     "I couldn't produce an answer I can verify against the guide right now. Please try again."
 )
+RATE_LIMITED = (
+    "The AI service is busy or has reached its free usage limit for today, so I can't answer "
+    "right now. Please try again later."
+)
+SERVICE_UNAVAILABLE = (
+    "I couldn't reach the search or AI service just now, so I can't answer. Please try again "
+    "in a moment."
+)
 
 
 def format_sources(chunks: list[dict]) -> str:

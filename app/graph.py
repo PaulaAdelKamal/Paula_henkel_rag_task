@@ -38,7 +38,13 @@ from app import citations, vectorstore
 from app.config import Settings
 from app.embeddings import EmbeddingCache, OpenRouterEmbeddings, get_spec
 from app.llm import GroundedAnswer, LLMAnswerer, LLMCondenser, make_chat_model
-from app.prompts import ANSWER_FAILED, EMPTY_QUESTION, NOT_IN_GUIDE
+from app.prompts import (
+    ANSWER_FAILED,
+    EMPTY_QUESTION,
+    NOT_IN_GUIDE,
+    RATE_LIMITED,
+    SERVICE_UNAVAILABLE,
+)
 
 HISTORY_MESSAGES = 6  # last 3 turns are enough to resolve "it" / "that"
 MAX_QUESTION_CHARS = 2000
@@ -60,7 +66,8 @@ class RAGState(TypedDict, total=False):
     used: list[dict]  # validated chunks the answer is based on
     invalid_sources: list[int]  # source numbers the model invented
     decision: str  # answer | not_in_document | empty | error
-    error: str  # exception type + message when the model step failed
+    error: str  # exception type + message when a step failed (never shown to the user)
+    error_kind: str  # rate_limit | unavailable | no_answer (picks the user-facing message)
     model_used: str  # chat model that produced the answer (may be a fallback)
     answer: str
     citations: list[dict]  # [{"pages": [...], "section": "..."}]
@@ -81,6 +88,7 @@ def _prepare(state: RAGState) -> dict:
         "invalid_sources": [],
         "decision": "",
         "error": "",
+        "error_kind": "",
         "model_used": "",
         "answer": "",
         "citations": [],
@@ -105,15 +113,47 @@ def _make_condense(condenser: Condenser):
     return condense
 
 
+def classify_error(exc: Exception) -> str:
+    """Map an exception to the message family the user sees.
+
+    rate_limit:  free-model quota exhausted or provider 429 (after the fallback chain)
+    no_answer:   the model answered, but not in a verifiable structured form
+    unavailable: anything else (network, Qdrant, provider outage)
+    """
+    from app.embeddings import QuotaExhausted
+    from app.llm import AnswerUnavailable
+
+    name = type(exc).__name__
+    text = str(exc).lower()
+    if isinstance(exc, QuotaExhausted) or "ratelimit" in name.lower() or "429" in text:
+        return "rate_limit"
+    if isinstance(exc, AnswerUnavailable):
+        return "no_answer"
+    return "unavailable"
+
+
+def _error_update(exc: Exception) -> dict:
+    return {
+        "decision": "error",
+        "error": f"{type(exc).__name__}: {str(exc)[:300]}",
+        "error_kind": classify_error(exc),
+    }
+
+
 def _make_retrieve(retriever: Retriever, k: int):
     def retrieve(state: RAGState) -> dict:
-        return {"retrieved": retriever(state["standalone_question"], k)}
+        try:
+            return {"retrieved": retriever(state["standalone_question"], k)}
+        except Exception as exc:  # quota, network or Qdrant failure: a clear message, no crash
+            return _error_update(exc)
 
     return retrieve
 
 
 def _make_route_retrieve(threshold: float):
     def route(state: RAGState) -> str:
+        if state.get("decision") == "error":
+            return "respond_error"
         hits = state["retrieved"]
         if not hits or hits[0].get("score", 1.0) < threshold:
             return "not_in_document"
@@ -128,7 +168,7 @@ def _make_generate(answerer: Answerer):
         try:
             result = answerer(state["standalone_question"], chunks, config=config)
         except Exception as exc:  # reported to the user as a clear message, detail kept in state
-            return {"decision": "error", "error": f"{type(exc).__name__}: {str(exc)[:300]}"}
+            return _error_update(exc)
         valid = [n for n in dict.fromkeys(result.used_sources) if 1 <= n <= len(chunks)]
         invalid = [n for n in result.used_sources if n not in valid]
         used = [chunks[n - 1] for n in valid]
@@ -173,11 +213,19 @@ def _not_in_document(state: RAGState) -> dict:
     }
 
 
+ERROR_MESSAGES = {
+    "rate_limit": RATE_LIMITED,
+    "unavailable": SERVICE_UNAVAILABLE,
+    "no_answer": ANSWER_FAILED,
+}
+
+
 def _respond_error(state: RAGState) -> dict:
+    message = ERROR_MESSAGES.get(state.get("error_kind", ""), ANSWER_FAILED)
     return {
         "decision": "error",
-        "response": citations.render_refusal(ANSWER_FAILED, state.get("retrieved", [])),
-        "messages": _turn(state, ANSWER_FAILED),
+        "response": citations.render_refusal(message, state.get("retrieved", [])),
+        "messages": _turn(state, message),
     }
 
 
@@ -210,7 +258,9 @@ def build_graph(
     g.add_conditional_edges("prepare", _route_prepare, ["respond_empty", "condense"])
     g.add_edge("condense", "retrieve")
     g.add_conditional_edges(
-        "retrieve", _make_route_retrieve(relevance_threshold), ["not_in_document", "generate"]
+        "retrieve",
+        _make_route_retrieve(relevance_threshold),
+        ["not_in_document", "generate", "respond_error"],
     )
     g.add_conditional_edges(
         "generate", _route_generate, ["respond_answer", "not_in_document", "respond_error"]

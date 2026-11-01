@@ -245,3 +245,72 @@ def test_parse_answer_falls_back_to_json_in_text_and_rejects_prose():
     assert parse_answer({"parsed": None, "raw": raw}).answerable is False
     with pytest.raises(AnswerUnavailable):
         parse_answer({"parsed": None, "raw": AIMessage(content="I think you swipe up.")})
+
+
+# --- hardening: failures become clear messages, never crashes --------------------------------
+
+
+class FailingRetriever:
+    def __init__(self, exc):
+        self.exc = exc
+
+    def __call__(self, query, k):
+        raise self.exc
+
+
+def test_exhausted_quota_during_retrieval_gives_a_clear_message():
+    from app.embeddings import QuotaExhausted
+    from app.prompts import RATE_LIMITED
+
+    answerer = StubAnswerer()
+    g = build_graph(
+        FailingRetriever(QuotaExhausted("free-models-per-day")), answerer, StubCondenser()
+    )
+    out = run(g, "How do I close an app?")
+    assert out["decision"] == "error" and out["error_kind"] == "rate_limit"
+    assert out["response"] == RATE_LIMITED and answerer.calls == []
+
+
+def test_unreachable_vector_store_gives_a_clear_message():
+    from app.prompts import SERVICE_UNAVAILABLE
+
+    g = build_graph(
+        FailingRetriever(ConnectionError("qdrant down")), StubAnswerer(), StubCondenser()
+    )
+    out = run(g, "How do I close an app?")
+    assert out["error_kind"] == "unavailable" and out["response"] == SERVICE_UNAVAILABLE
+    assert "qdrant down" in out["error"]  # detail kept for logs/traces, not shown
+
+
+def test_provider_rate_limit_after_fallbacks_is_reported_as_rate_limit():
+    from app.prompts import RATE_LIMITED
+
+    class RateLimitError(Exception):  # same name as openai.RateLimitError
+        pass
+
+    g = build_graph(
+        StubRetriever([MULTITASKING]),
+        StubAnswerer(RateLimitError("429 Provider returned error")),
+        StubCondenser(),
+    )
+    out = run(g, "How do I close an app?")
+    assert out["error_kind"] == "rate_limit" and out["response"].startswith(RATE_LIMITED)
+
+
+def test_overlong_input_is_truncated_before_retrieval():
+    from app.graph import MAX_QUESTION_CHARS
+
+    retriever = StubRetriever([MULTITASKING])
+    g = build_graph(retriever, StubAnswerer(answer()), StubCondenser())
+    run(g, "close app " * 1000)
+    assert len(retriever.queries[0]) <= MAX_QUESTION_CHARS
+
+
+def test_noisy_http_loggers_are_capped():
+    import logging
+
+    from app.observability import configure_logging
+
+    configure_logging("INFO")
+    assert logging.getLogger("httpx").level == logging.WARNING
+    assert logging.getLogger("qdrant_client").level == logging.WARNING
