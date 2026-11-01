@@ -56,6 +56,7 @@ ignore = ["S101"]  # assert is fine in tests
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S"]
+"scripts/grader_dryrun.py" = ["S603", "S607"]  # runs git/docker with argv built in the script
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
