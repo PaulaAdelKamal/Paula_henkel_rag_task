@@ -1,0 +1,48 @@
+[
+  {
+    "model": "nvidia/nemotron-3.5-embed-1b:free",
+    "ok": true,
+    "dim": 2048,
+    "dim_matches_registry": true,
+    "norm_raw_query": 1.0,
+    "cos_raw_vs_prefixed_query": 0.9411,
+    "api_prompt_tokens_total": 373,
+    "bert_tokens_total": 357,
+    "longest_chunk_bert_tokens": 339,
+    "spec": {
+      "slug": "nvidia/nemotron-3.5-embed-1b:free",
+      "dim": 2048,
+      "query_prefix": "query: ",
+      "doc_prefix": "passage: ",
+      "max_tokens": 32768,
+      "normalize": true,
+      "notes": "multimodal (text + page images); Matryoshka; OpenMDW-1.1"
+    }
+  },
+  {
+    "model": "nvidia/nemotron-3.5-embed-8b:free",
+    "ok": false,
+    "status": 502,
+    "error": "HTTP 500: {\"object\":\"error\",\"message\":\"service inference failed\",\"type\":\"server_error\"}"
+  },
+  {
+    "model": "liquid/lfm-2.5-embedding-350m:free",
+    "ok": true,
+    "dim": 1024,
+    "dim_matches_registry": true,
+    "norm_raw_query": 1.0,
+    "cos_raw_vs_prefixed_query": 0.9792,
+    "api_prompt_tokens_total": 368,
+    "bert_tokens_total": 357,
+    "longest_chunk_bert_tokens": 339,
+    "spec": {
+      "slug": "liquid/lfm-2.5-embedding-350m:free",
+      "dim": 1024,
+      "query_prefix": "query: ",
+      "doc_prefix": "document: ",
+      "max_tokens": 512,
+      "normalize": true,
+      "notes": "document prefix is 'document: ' (not 'passage: '); 512-token limit; LFM Open License v1.0; requests may be retained for training"
+    }
+  }
+]

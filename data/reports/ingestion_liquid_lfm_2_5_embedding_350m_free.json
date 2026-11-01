@@ -1,0 +1,25 @@
+{
+  "model": "liquid/lfm-2.5-embedding-350m:free",
+  "collection": "iphone_guide__liquid_lfm_2_5_embedding_350m_free__edb94b731b",
+  "chunk_config_hash": "edb94b731b",
+  "dim": 1024,
+  "created_collection": true,
+  "chunks": 336,
+  "points_after": 336,
+  "added": 336,
+  "deleted": 0,
+  "api_requests": 6,
+  "api_prompt_tokens": 66755,
+  "bert_tokens_embedded": 64001,
+  "cost_usd": 0.0,
+  "duration_s": 23.8,
+  "spec": {
+    "slug": "liquid/lfm-2.5-embedding-350m:free",
+    "dim": 1024,
+    "query_prefix": "query: ",
+    "doc_prefix": "document: ",
+    "max_tokens": 512,
+    "normalize": true,
+    "notes": "document prefix is 'document: ' (not 'passage: '); 512-token limit; LFM Open License v1.0; requests may be retained for training"
+  }
+}
