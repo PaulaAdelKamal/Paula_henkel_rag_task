@@ -1,0 +1,10 @@
+# Working rules
+
+1. **One step at a time.** The plan has steps 0 to 12. At the end of each step: run tests and linters, update docs, commit, give a short summary (what was built, decisions made, what is next, what the user must do), then **stop and wait for "go"**. Never start the next step unprompted.
+2. **Commits are graded.** Small, meaningful, incremental Conventional Commits (`feat:`, `fix:`, `docs:`, `test:`, `chore:`, `refactor:`, `eval:`, `ci:`). One logical change per commit, with a body when the *why* is not obvious. No giant "wip" commits, no history rewriting after pushing. Tag the end of each step (`step-00` ... `step-12`, final `v1.0`).
+3. **Secrets hygiene.** `.env` is ignored by git and docker. Never print, log or echo key values. Secret scanners run as pre-commit hooks and before every push. If a secret ever lands in a commit, say so immediately so the key is rotated and history cleaned *before* publishing.
+4. **Library APIs change fast** (LangChain, LangGraph, Streamlit, Ragas, Langfuse SDK, OpenRouter, Qdrant client). Read the *current* official docs before coding against them. Pin exact versions in `uv.lock` and record them in `docs/VERSIONS.md`.
+5. **Ask before spending money or time.** Before any batch of paid API calls, print the estimated cost and number of calls and wait for approval. Cache everything on disk (content-hash keyed) so nothing is paid for twice.
+6. **Teach.** At the end of every step, append "Step N: what I must be able to explain" to `docs/INTERVIEW_PREP.md` (5 to 8 likely interview questions with crisp answers, trade-offs, what was rejected and why). Keep `docs/DECISIONS.md` as a lightweight ADR log: context, options, decision, consequences, evidence.
+7. **Be honest about results.** If a fancy technique does not help, say so and keep the simpler option. Report uncertainty (bootstrap confidence intervals) rather than overclaiming on small eval sets.
+8. **Say what the user must do** (accounts, API keys, approvals) as an explicit checklist at the start of each step that needs it.
