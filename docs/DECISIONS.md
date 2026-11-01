@@ -378,3 +378,35 @@ It plugs into LangChain and LangGraph like any other `Embeddings`.
 - The answerable/unanswerable decision is the model's structured `answerable` flag, backed by code validation of its sources.
 - `RELEVANCE_THRESHOLD` (default 0.0, i.e. off) only short-circuits clearly off-topic queries to save a request.
 - It will be calibrated per embedding model from the score distributions of answerable and unanswerable evaluation questions.
+
+---
+
+## ADR-0023: Streamlit UI: visible Sources, progress streaming, page preview
+
+**Status:** accepted (Step 6)
+
+**Decisions.**
+- **Sources inside the message.** The **Sources** block is part of the message text itself, not a hidden element, so it's visible in every rendering and in exports. The "Cited passages" expander adds the cited text, and a toggle renders the cited page from the bundled PDF.
+- **Progress streaming, not token streaming.** The answer is a structured function-call output (`answerable`, `answer`, `used_sources`), and validating it needs the complete object. Streaming partial tool-call JSON would show text before its sources are validated. So the UI streams *progress* node by node and shows the validated answer in one piece. Faking a typewriter effect was rejected as cosmetic.
+- **Page rendering with pypdfium2** (BSD-3/Apache-2.0, 0.05 s per page). `st.pdf` can't jump to a page, and PyMuPDF (AGPL) must stay out of the runtime image.
+- **Startup self-check** before the first message, cached per process. A failing required service shows a readable error screen.
+- **Starter questions** are pills consumed once by a callback; a selected pill would otherwise re-ask on every rerun.
+
+**Bug found by the live run.** The SQLite embedding cache was created on one thread and used on Streamlit/LangGraph worker threads (`ProgrammingError`). It now opens with `check_same_thread=False` behind a lock, with a regression test.
+
+---
+
+## ADR-0024: Langfuse tracing: one trace per turn, feedback as a score, never blocking
+
+**Status:** accepted (Step 6)
+
+**Decisions.**
+- `Langfuse.create_trace_id()` before each turn, then a `rag-turn` root span via `start_as_current_observation(trace_context=...)`, with the LangChain `CallbackHandler` for the graph's LLM calls.
+- Trace attributes go in through `langfuse_session_id` / `langfuse_user_id` / `langfuse_tags` config metadata.
+- Retrieval results, the decision and the answering model are written onto the root span.
+- Thumbs up/down call `create_score(trace_id, name="user-feedback", value=1|0)`.
+- Every tracing call is wrapped: without keys or on any error, it's a no-op.
+
+**Pitfall found and fixed.** The startup check validated the keys by creating an SDK client and calling `shutdown()`. Langfuse v5 shares one client per public key in the process, so this also shut down the tracer's client, and the feedback score was dropped ("Langfuse client has been shut down"). The health check now calls the REST API directly (`GET /api/public/projects` with basic auth) and never touches the SDK singleton.
+
+**Evidence.** A live trace showed 21 observations, retrieval metadata on `rag-turn`, the answering model, and `user-feedback = 1.0` attached to the trace. With the keys removed, answering still worked.

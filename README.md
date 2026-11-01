@@ -4,7 +4,7 @@ A grounded chatbot that answers questions **only** from the *iOS 7.1 iPhone User
 
 Stack: LangGraph (orchestration) · Streamlit (UI) · Qdrant Cloud (vector store) · OpenRouter (chat and embedding models) · Langfuse (tracing and evaluation, optional).
 
-> **Status:** Step 5, the RAG pipeline works in the terminal (`uv run python -m app.cli`). The web UI and Docker image come in Steps 6–7.
+> **Status:** Step 6, web UI and Langfuse tracing work locally (`uv run python -m streamlit run app/ui.py`, then open http://localhost:8000). The Docker image comes in Step 7.
 
 ## Quick start (final form, available from Step 7)
 
@@ -39,6 +39,7 @@ uv run python -m ingestion.chunking --grid  # chunk every config -> data/chunks/
 uv run python -m ingestion.ingest --all --plan   # request budget, no API calls (then --yes)
 uv run python -m ingestion.verify_index     # collection health + sanity query + keep-alive
 uv run python -m app.cli --debug            # chat in the terminal (answers + Sources)
+uv run python -m streamlit run app/ui.py    # web UI on http://localhost:8000
 uv run python -m pre_commit install --hook-type pre-commit --hook-type pre-push
 ```
 

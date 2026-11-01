@@ -26,6 +26,7 @@
 | pydantic-settings | 2.16.2 | typed configuration |
 | httpx | 0.28.1 | direct HTTP calls (OpenRouter `/key`, model listing) |
 | truststore | 0.10.5 | OS trust store for TLS (ADR-0007) |
+| pypdfium2 | 5.14.0 | renders the cited page in the UI (BSD-3/Apache-2.0) |
 
 ## Dev and offline groups (never in the image)
 

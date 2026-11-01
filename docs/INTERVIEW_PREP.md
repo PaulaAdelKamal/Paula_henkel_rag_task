@@ -281,3 +281,51 @@ No, and I have the data point. Face ID (not in the guide) scored 0.483 at the to
 
 **9. (Trivia) `except ValueError, ValidationError:` looks like Python 2. Is it a bug?**
 No. It's PEP 758 (Python 3.14), which allows multiple exceptions without parentheses when there's no `as` clause. Ruff's formatter writes it that way because the target is py314. It catches both exceptions; it doesn't bind a name, unlike Python 2's syntax.
+
+---
+
+## Step 6: what I must be able to explain
+
+**1. Why Streamlit, and how does it handle sessions and memory?**
+- Chainlit doesn't support Python 3.14 (ADR-0002).
+- Streamlit re-runs the script on every interaction, so per-user state lives in `st.session_state`: the chat transcript and a `thread_id`.
+- The graph and its in-memory checkpointer are built once per server process (`st.cache_resource`), and the `thread_id` separates conversations.
+- "New conversation" just issues a new thread id.
+
+**2. Why doesn't the answer stream token by token?**
+- The answer is a structured output (`answerable`, `answer`, `used_sources`), produced as a function call and validated before display. That's what guarantees real citations.
+- Streaming partial JSON would show text before its sources are checked.
+- So the UI streams progress per graph node, which is real information, and shows the validated answer at once. I chose correctness over a typewriter effect.
+
+**3. Where are the citations in the UI?**
+- In the message text itself: a **Sources** block with "Page N · Chapter > Section", for every answer.
+- Refusals list the closest sections, labelled as non-sources.
+- An expander shows the cited passages, and a toggle renders the cited page from the PDF, so the grader can verify a citation by eye.
+
+**4. What does a Langfuse trace contain?**
+One trace per turn:
+- a known trace id;
+- a `rag-turn` root span with the LangGraph nodes, the prompt, the parser and the `ChatOpenAI` generation nested inside;
+- session id, environment, release and tags (embedding model, chunk config, prompt version, git sha);
+- root metadata: decision, rewritten question, which model answered (fallbacks included), retrieved chunk ids with pages and scores, cited pages, any error.
+
+Thumbs up/down become a `user-feedback` score on that trace. All of this was verified live.
+
+**5. What happens if Langfuse is down or keys are missing?**
+- Nothing breaks. Every tracing call is wrapped and becomes a no-op.
+- The health check marks Langfuse SKIP (no keys) or WARN (rejected), never FAIL.
+- Verified: with the keys removed, the app answered normally.
+
+**6. Tell me about a bug you found in this step.**
+Two, both found only by running against real services:
+- **SQLite thread safety.** The embedding cache's SQLite connection was created on one thread but used on Streamlit/LangGraph worker threads. Fixed with `check_same_thread=False` plus a lock, and a regression test.
+- **Langfuse client singleton.** My startup check created a Langfuse client and shut it down. v5 shares one client per public key, so it silently shut down tracing too, and the feedback score was dropped. The health check now uses Langfuse's REST API directly.
+
+The lesson: stubs test my logic, but integration bugs need a live run.
+
+**7. What does the startup self-check verify?**
+- The OpenRouter key works (`GET /key`, free) and the chat and embedding models are listed.
+- The Qdrant collection for the configured embedding model and chunk config exists, isn't empty, and has the model's dimension.
+- Optionally, the Langfuse keys.
+
+A failing required check shows a human-readable error screen naming the problem: no stack trace, no key value (messages are redacted).
