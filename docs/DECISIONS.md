@@ -480,3 +480,22 @@ It plugs into LangChain and LangGraph like any other `Embeddings`.
 - There are no benchmark numbers. The provisional defaults (Nemotron 3.5 1B embeddings, the free Gemma → Nemotron chat chain, chunk config `edb94b731b`, relevance threshold 0) stay the shipped configuration, justified by design reasoning and the manual gates rather than by measurement. ADR-0014 and ADR-0022 remain *provisional*.
 - Everything the experiments need already exists: the reviewed golden set in Langfuse, the 14 chunk configurations, the embedding registry, idempotent ingestion, model choice via environment variables, and per-turn traces.
 - The plan's Step 9/10 tags are intentionally absent, as Step 2's is.
+
+---
+
+## ADR-0028: Hardening: classified errors, quiet logs, no dead configuration, cluster keep-alive
+
+**Status:** accepted (Step 11)
+
+**Decisions.**
+- **Errors become plain messages, by family.** A failure in retrieval or generation is classified:
+  - **rate limit:** the free quota is exhausted, or the provider returns 429 after the fallback chain;
+  - **unavailable:** network, Qdrant or provider outage;
+  - **unverifiable answer:** the model didn't return the structured answer.
+
+  Each gets its own user-facing message, and the exception detail is kept in state for traces and logs only. Before this, a quota error reached the UI as "Something went wrong (QuotaExhausted)" and crashed the CLI.
+- **Input limits:** questions are truncated at 2,000 characters, and the chat box shows the limit.
+- **Logging:** the app logs at `LOG_LEVEL`. HTTP client libraries (httpx, urllib3, openai, langfuse, qdrant_client) are capped at WARNING so request URLs aren't logged, unless `LOG_LEVEL=DEBUG`.
+- **Dead configuration removed:** `VISION_MODEL`, `JUDGE_MODEL`, `EVAL_GEN_MODEL` and `MAX_SPEND_USD` belonged to the skipped steps (ADR-0013, ADR-0027), and the unimplemented `eval/` stubs are deleted. `.env.example` lists only what the code reads.
+- **Keep-alive:** a scheduled GitHub Action pings the Qdrant cluster every three days, so the free cluster isn't suspended during grading. It needs the repository secrets `QDRANT_URL` and `QDRANT_API_KEY`, and skips without them.
+- **Red-team policy:** the decided behaviour for 11 adversarial and unusual input classes is in `docs/FAILURE_ANALYSIS.md`. `scripts/red_team.py` checks them live, and its verdict logic is unit-tested.

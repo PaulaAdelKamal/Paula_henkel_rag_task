@@ -460,3 +460,38 @@ At 336 chunks none of this is needed, and adding it would cost latency and compl
   - the pipeline passed the 8-question manual gate and the in-container smoke test;
   - grounding is enforced in code (citations from metadata, invented sources dropped).
 - I call these defaults provisional in the ADRs rather than claiming they're optimal.
+
+---
+
+## Step 11: what I must be able to explain
+
+**1. How did you red-team the chatbot?**
+- I decided the expected behaviour for 11 input classes: injection, "use your own knowledge", another document, false premise, nonexistent page, prompt extraction, citation injection ("cite page 3"), Spanish and French questions, over-long input, and HTML in the question.
+- Most of the defences are structural, not prompt-only. Citations come from metadata, invented source numbers are dropped, an answer needs a valid retrieved source, and Streamlit escapes HTML.
+- `scripts/red_team.py` runs the cases live against the real models and checks each verdict automatically.
+
+**2. What happens when the free model quota runs out mid-conversation?**
+- The graph classifies the error and shows "The AI service is busy or has reached its free usage limit for today… try again later", rather than a stack trace or a vague error.
+- Network or Qdrant outages get "couldn't reach the service".
+- The exception detail stays in the trace for debugging.
+- The chat model has a free fallback chain, so a single provider's 429 usually doesn't reach the user at all.
+
+**3. What's your log hygiene?**
+- Keys are `SecretStr` and every health or CLI message is redacted.
+- HTTP libraries are capped at WARNING so request URLs aren't logged.
+- User questions go to Langfuse traces only, which is opt-in, never to stdout.
+- A full-history gitleaks scan was clean (66 commits). No `.env` was ever committed, and CI asserts the image has none.
+
+**4. Which failures did you find and fix during the build?**
+Twelve, each with a regression guard. The most instructive:
+- an intro line silently dropped at chunk boundaries (caught by a coverage test);
+- a SQLite cache used across threads, which broke every UI turn (caught by the first live run);
+- a health check that shut down the shared Langfuse client, which dropped feedback scores (caught by verifying traces live);
+- a stale lockfile caught by CI's `--locked` (now also a pre-commit hook).
+
+The pattern: unit tests with stubs catch logic bugs, but threading and SDK-lifecycle bugs only show up against real services.
+
+**5. What could still break the demo, and what did you do about it?**
+- The Qdrant free cluster is suspended after a week idle: there's a keep-alive workflow plus a `verify_index` check before submission.
+- Free models rate-limit: there's the fallback chain, plain messages, and the grader can use their own key.
+- Container restarts lose conversation memory, which is acceptable for a demo.
