@@ -1,0 +1,67 @@
+name,path,description
+.dockerignore,.dockerignore,"Keeps .env, caches, docs, tests and offline code out of the Docker build context"
+.env.example,.env.example,Template of every environment variable with a one-line description (copy to .env)
+.gitattributes,.gitattributes,Forces LF line endings so scripts and the Dockerfile behave the same on every OS
+ci.yml,.github/workflows/ci.yml,"CI: lint, tests, full-history secret scan, Docker build with hygiene and boot checks, grader dry-run"
+qdrant-keepalive.yml,.github/workflows/qdrant-keepalive.yml,Scheduled ping of the Qdrant Cloud cluster so the free tier is not suspended
+.gitignore,.gitignore,"Keeps secrets, caches, private notes and local documentation out of git"
+.gitleaks.toml,.gitleaks.toml,gitleaks secret-scanner configuration (default rules plus one narrow allowlist)
+.pre-commit-config.yaml,.pre-commit-config.yaml,"Pre-commit hooks: secret scanners, lockfile check, hygiene checks, ruff lint and format"
+.python-version,.python-version,Python version used by uv for local development and CI (3.14)
+.secrets.baseline,.secrets.baseline,"detect-secrets baseline of audited false positives (hashes only, no secrets)"
+config.toml,.streamlit/config.toml,"Streamlit server settings: headless, 0.0.0.0:8000, usage statistics off"
+Dockerfile,Dockerfile,"Builds the single runtime container: runtime dependencies, app code, PDF, non-root user, healthcheck"
+README.md,README.md,"Short README for the grader: run steps, port, environment variables, models"
+README_FULL.md,README_FULL.md,"Full project README: how ingestion, embedding and answering work, schema, limitations, future work"
+__init__.py,app/__init__.py,Marks app/ as the runtime package (everything here ships in the Docker image)
+citations.py,app/citations.py,Builds the page/section citations shown with every answer and refusal from chunk metadata
+cli.py,app/cli.py,"Terminal chat with the same pipeline (one-shot or interactive, optional debug line)"
+config.py,app/config.py,Typed settings from environment variables; secrets masked; readable errors for bad config
+embeddings.py,app/embeddings.py,"Embedding model registry (dimensions, prefixes) and the OpenRouter embedding client with cache and retries"
+graph.py,app/graph.py,"The answering pipeline as a LangGraph: condense, retrieve, relevance gate, generate, validate, respond"
+health.py,app/health.py,"Startup self-check: OpenRouter key and models, Qdrant collection, optional Langfuse"
+llm.py,app/llm.py,Chat model via OpenRouter with free fallbacks; structured grounded answer and follow-up condenser
+observability.py,app/observability.py,Langfuse tracing per chat turn and feedback scores; logging setup; no-op without keys
+pages.py,app/pages.py,Renders a cited PDF page as an image for the UI
+prompts.py,app/prompts.py,"Grounding prompts for answering and follow-up rewriting, plus the user-facing refusal and error texts"
+ui.py,app/ui.py,"Streamlit chat UI: answers with Sources, cited passages, page preview, feedback, multi-turn sessions"
+vectorstore.py,app/vectorstore.py,"Qdrant access: collection naming, idempotent sync, search and collection health checks"
+figures.jsonl,data/parsed/figures.jsonl,Output of figures.py: figure regions with their anchor text and callout labels
+pages.jsonl,data/parsed/pages.jsonl,"Output of parse_pdf: one structured record per PDF page (elements, sections, xrefs, images)"
+toc.json,data/parsed/toc.json,"Output of parse_pdf: chapters, appendices and sections of the printed table of contents"
+iPhone_User_Guide_1.pdf,data/source/iPhone_User_Guide_1.pdf,The source document: iOS 7.1 iPhone User Guide (162 pages)
+__init__.py,eval/__init__.py,Marks eval/ as the offline evaluation package
+__init__.py,eval/datasets/__init__.py,Marks eval/datasets/ as the golden-dataset package
+build.py,eval/datasets/build.py,Validates the golden draft (every evidence quote on its page) and writes golden.jsonl
+golden.jsonl,eval/datasets/golden.jsonl,The validated golden set with gold pages and sections derived from the evidence
+golden_draft.jsonl,eval/datasets/golden_draft.jsonl,The 80 golden questions as written and reviewed (all accepted)
+review.py,eval/datasets/review.py,"Review tools for the golden set: HTML page with PDF pages, CSV round trip, interactive CLI"
+schema.py,eval/datasets/schema.py,"Schema of golden-set items (question, reference answer, category, evidence, review status)"
+upload_langfuse.py,eval/datasets/upload_langfuse.py,Uploads the golden set to the Langfuse dataset 'golden' (idempotent)
+file_inventory.csv,file_inventory.csv,This list of every file in the repository with a brief description
+__init__.py,ingestion/__init__.py,Marks ingestion/ as the offline ingestion package (not in the Docker image)
+bert-base-uncased-vocab.txt,ingestion/assets/bert-base-uncased-vocab.txt,BERT WordPiece vocabulary used to count tokens when chunking (Apache-2.0)
+chunking.py,ingestion/chunking.py,Ingestion step 3: structure-aware chunking with contextual headers and full chunk metadata
+figures.py,ingestion/figures.py,Ingestion step 2: finds figure regions and links them to the text they illustrate
+ingest.py,ingestion/ingest.py,Ingestion step 4: embeds chunks via OpenRouter and syncs them into one Qdrant collection per model
+parse_pdf.py,ingestion/parse_pdf.py,Ingestion step 1: parses the PDF into structured pages using typography and the printed TOC
+verify_index.py,ingestion/verify_index.py,"Ingestion step 5: checks each collection (count, dimension, sanity query) and keeps the cluster active"
+pyproject.toml,pyproject.toml,"Project metadata, dependency groups (runtime, dev, ingest) and ruff/pytest settings"
+__init__.py,scripts/__init__.py,Marks scripts/ as a package so scripts run with python -m scripts.<name>
+check_connections.py,scripts/check_connections.py,"Checks OpenRouter, Qdrant and Langfuse with the keys in .env (no paid calls)"
+grader_dryrun.py,scripts/grader_dryrun.py,"Cross-platform version of the grader dry-run, with in-container startup checks"
+grader_dryrun.sh,scripts/grader_dryrun.sh,"Runs the grader's five steps from a clean clone (Linux/macOS): build, run, health, smoke question"
+red_team.py,scripts/red_team.py,Runs adversarial and unusual inputs through the live pipeline and checks each verdict
+smoke_ui.py,scripts/smoke_ui.py,Smoke test piped into the running container: one question through the real UI must cite a page
+__init__.py,tests/__init__.py,Marks tests/ as a package
+test_chunking.py,tests/test_chunking.py,"Tests chunking: no chapter crossing, full coverage, token limits, ids, overlap, figures"
+test_config.py,tests/test_config.py,"Tests settings: defaults, readable errors without values, masked secrets, free-only fallbacks"
+test_datasets.py,tests/test_datasets.py,"Tests the golden-set builder, review tools and Langfuse payloads"
+test_embeddings.py,tests/test_embeddings.py,"Tests the embedding client offline: prefixes, batching, retries, quota stop, cache, thread safety"
+test_graph.py,tests/test_graph.py,"Tests the answering graph with stubs: citations, refusals, memory, error messages, limits"
+test_health.py,tests/test_health.py,"Tests the startup checks: secret redaction, failure lines, optional Langfuse"
+test_parse_pdf.py,tests/test_parse_pdf.py,"Tests the PDF parser on the real document: page numbers, TOC map, footers, tables, labels, xrefs"
+test_red_team.py,tests/test_red_team.py,Tests the red-team verdict logic
+test_ui.py,tests/test_ui.py,"Tests the Streamlit app headlessly: startup error, answers, refusals, feedback, 10-turn chat"
+test_vectorstore.py,tests/test_vectorstore.py,"Tests the Qdrant layer on in-memory Qdrant: naming, idempotent sync, payloads, health"
+uv.lock,uv.lock,Exact pinned versions and hashes of every dependency
