@@ -52,7 +52,10 @@ Each entry: context, options, decision, consequences, evidence. Status is *accep
 - Python tools run as modules from the project venv (`detect-secrets`, `pre-commit-hooks`).
 - Native tools run from pinned official Docker images: `zricethezav/gitleaks:v8.30.1` and `ghcr.io/astral-sh/ruff:0.17.3`.
 - Two independent secret scanners: detect-secrets with a committed baseline, plus gitleaks on staged changes. gitleaks also scans the **full history** on `pre-push`.
-- CI runs ruff and pytest natively, and `gitleaks-action` over the full history.
+- CI runs ruff and pytest natively, and the same pinned gitleaks image over the full history.
+  `gitleaks-action` was tried first and dropped: it failed with exit code 1 on the first push of
+  a new branch while the same commits scanned clean locally, and running one pinned image in both
+  places makes the scans identical.
 
 **Consequences.** Docker Desktop must be running to commit. That is fail-closed: if Docker is down, the commit is blocked rather than silently skipping the scan.
 

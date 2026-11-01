@@ -36,7 +36,7 @@
 | pre-commit | 4.7.0 | dev |
 | pre-commit-hooks | 6.0.0 | dev |
 | detect-secrets | 1.5.0 | dev |
-| gitleaks | 8.30.1 | Docker image locally, `gitleaks-action` v3.0.0 in CI |
+| gitleaks | 8.30.1 | `zricethezav/gitleaks:v8.30.1` Docker image, locally and in CI |
 | pymupdf | 2.0 | ingest (AGPL-3.0, offline only) |
 
 ## CI actions (pinned by commit SHA)
@@ -45,7 +45,6 @@
 |---|---|---|
 | actions/checkout | v7.0.1 | 3d3c42e5aac5ba805825da76410c181273ba90b1 |
 | astral-sh/setup-uv | v10.3.3 | 68559e99cc807c1eb7e9238fd43a15bba460eec2 |
-| gitleaks/gitleaks-action | v3.0.0 | e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e |
 
 ## Models (provisional until the Step 9/10 benchmark)
 
