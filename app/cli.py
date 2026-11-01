@@ -22,6 +22,7 @@ truststore.inject_into_ssl()
 
 from app.config import ConfigError, get_settings  # noqa: E402
 from app.graph import build_rag  # noqa: E402
+from app.observability import configure_logging  # noqa: E402
 
 
 def ask(graph, thread_id: str, question: str, debug: bool) -> dict:
@@ -48,6 +49,7 @@ def main() -> int:
     except ConfigError as exc:
         print(exc)
         return 1
+    configure_logging(settings.log_level)
     graph = build_rag(settings)
     thread_id = str(uuid.uuid4())
     if args.question:

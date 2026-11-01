@@ -20,6 +20,20 @@ from app.prompts import PROMPT_VERSION
 
 log = logging.getLogger(__name__)
 
+# Chatty libraries that log every request URL at INFO (e.g. the Qdrant cluster host).
+_NOISY_LOGGERS = ("httpx", "httpcore", "urllib3", "openai", "langfuse", "qdrant_client")
+
+
+def configure_logging(level: str = "INFO") -> None:
+    """App logs at LOG_LEVEL; HTTP client libraries only at WARNING unless LOG_LEVEL=DEBUG.
+
+    Keys are never logged by the app (they travel in headers, which these libraries don't
+    log at INFO either); user questions go to Langfuse traces only, not to stdout.
+    """
+    logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    for name in _NOISY_LOGGERS:
+        logging.getLogger(name).setLevel(logging.DEBUG if level == "DEBUG" else logging.WARNING)
+
 
 @lru_cache(maxsize=1)
 def git_sha() -> str:

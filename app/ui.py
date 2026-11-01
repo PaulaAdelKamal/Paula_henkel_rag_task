@@ -28,9 +28,9 @@ truststore.inject_into_ssl()
 import streamlit as st  # noqa: E402
 
 from app.config import ConfigError, get_settings  # noqa: E402
-from app.graph import build_rag, collection_for  # noqa: E402
+from app.graph import MAX_QUESTION_CHARS, build_rag, collection_for  # noqa: E402
 from app.health import startup_checks  # noqa: E402
-from app.observability import Tracer  # noqa: E402
+from app.observability import Tracer, configure_logging  # noqa: E402
 from app.pages import page_png  # noqa: E402
 from app.prompts import GUIDE  # noqa: E402
 
@@ -56,7 +56,7 @@ def load_app():
         settings = get_settings()
     except ConfigError as exc:
         return None, [str(exc)], None, None
-    logging.basicConfig(level=settings.log_level)
+    configure_logging(settings.log_level)
     checks = startup_checks(settings)
     blocking = [f"{c.service}: {c.detail}" for c in checks if c.blocking]
     if blocking:
@@ -172,7 +172,9 @@ def main() -> None:
             key="starter",
             on_change=take_starter,
         )
-    typed = st.chat_input("Ask a question about the iPhone User Guide")
+    typed = st.chat_input(
+        "Ask a question about the iPhone User Guide", max_chars=MAX_QUESTION_CHARS
+    )
     question = typed or st.session_state.pop("pending_question", None)
     if question:
         st.session_state.messages.append({"role": "user", "content": question})
