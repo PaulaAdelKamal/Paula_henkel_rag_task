@@ -1,0 +1,38 @@
+name: qdrant-keepalive
+
+# Qdrant Cloud suspends free clusters after about a week without activity, which would
+# break the grader's run. This pings the cluster every three days. It needs two
+# repository secrets (Settings > Secrets and variables > Actions): QDRANT_URL and
+# QDRANT_API_KEY. Without them the job skips; nothing else depends on it.
+on:
+  schedule:
+    - cron: "17 6 */3 * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List collections and point counts
+        env:
+          QDRANT_URL: ${{ secrets.QDRANT_URL }}
+          QDRANT_API_KEY: ${{ secrets.QDRANT_API_KEY }}
+        run: |
+          if [ -z "$QDRANT_URL" ] || [ -z "$QDRANT_API_KEY" ]; then
+            echo "QDRANT_URL / QDRANT_API_KEY secrets not set; skipping keep-alive."
+            exit 0
+          fi
+          python3 - <<'EOF'
+          import json, os, urllib.parse, urllib.request
+          url = os.environ["QDRANT_URL"].rstrip("/")
+          if urllib.parse.urlparse(url).port is None:
+              url += ":6333"  # Qdrant Cloud REST port (the Python client adds it too)
+          def get(path):
+              req = urllib.request.Request(url + path, headers={"api-key": os.environ["QDRANT_API_KEY"]})
+              return json.load(urllib.request.urlopen(req, timeout=30))["result"]
+          for c in get("/collections")["collections"]:
+              print(c["name"], get(f"/collections/{c['name']}")["points_count"], "points")
+          EOF
