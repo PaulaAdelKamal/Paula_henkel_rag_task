@@ -24,6 +24,13 @@ import httpx
 
 ROOT = Path(__file__).resolve().parent.parent
 NAME = "rag-grader-dryrun"
+STARTUP_CHECKS = (
+    "import sys, truststore; truststore.inject_into_ssl();"
+    "from app.config import get_settings; from app.health import startup_checks;"
+    "cs = startup_checks(get_settings());"
+    "[print(f'  [{c.status}] {c.service}: {c.detail}') for c in cs];"
+    "sys.exit(1 if any(c.blocking for c in cs) else 0)"
+)
 IMAGE = "chatbot:1.0"
 
 
@@ -39,6 +46,9 @@ def main() -> int:
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--ca-bundle", type=Path, help="dev-only CA bundle (TLS-inspecting proxy)")
     ap.add_argument("--keep", action="store_true", help="leave the container running")
+    ap.add_argument(
+        "--skip-smoke", action="store_true", help="no question (no free-model quota needed)"
+    )
     args = ap.parse_args()
     if not args.env_file.is_file():
         print(f"missing {args.env_file} (copy .env.example and fill it in)")
@@ -107,6 +117,21 @@ def main() -> int:
         assert index.status_code == 200 and "<title>" in index.text, "UI page not served"
         print(f"  UI is served on {base} (boot {time.perf_counter() - started:.0f} s since start)")
 
+        print("[checks] startup self-check inside the container (no free-model requests)")
+        checks = subprocess.run(
+            ["docker", "exec", NAME, "python", "-c", STARTUP_CHECKS],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        print(checks.stdout.strip())
+        if checks.returncode != 0:
+            print(checks.stderr[-1500:])
+            return 1
+        if args.skip_smoke:
+            print("[smoke] skipped (--skip-smoke)")
+            print("DRY RUN PASSED (without smoke question)")
+            return 0
         print("[smoke] one question through the real UI inside the container")
         smoke = (ROOT / "scripts" / "smoke_ui.py").read_bytes()
         result = subprocess.run(
