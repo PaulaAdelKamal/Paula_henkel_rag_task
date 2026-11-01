@@ -30,6 +30,7 @@ dist/
 data/cache/
 data/chunks/
 eval/reports/raw/
+eval/datasets/review_sheet.csv
 
 # --- Tooling / OS / editors ---
 .streamlit/secrets.toml
