@@ -12,7 +12,13 @@ REQUIRED = {
 
 @pytest.fixture
 def clean_env(monkeypatch):
-    for var in [*REQUIRED, "LANGFUSE_PUBLIC_KEY", "LANGFUSE_SECRET_KEY", "TOP_K", "VISION_MODEL"]:
+    for var in [
+        *REQUIRED,
+        "LANGFUSE_PUBLIC_KEY",
+        "LANGFUSE_SECRET_KEY",
+        "TOP_K",
+        "QDRANT_COLLECTION",
+    ]:
         monkeypatch.delenv(var, raising=False)
     return monkeypatch
 
@@ -55,10 +61,10 @@ def test_empty_values_fall_back_to_defaults(clean_env):
     for k, v in REQUIRED.items():
         clean_env.setenv(k, v)
     clean_env.setenv("TOP_K", "")
-    clean_env.setenv("VISION_MODEL", "")
+    clean_env.setenv("QDRANT_COLLECTION", "")
     s = make_settings()
     assert s.top_k == 5
-    assert s.vision_model is None
+    assert s.qdrant_collection is None
 
 
 def test_secrets_are_masked_in_repr(clean_env):

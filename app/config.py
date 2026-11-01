@@ -57,12 +57,8 @@ class Settings(BaseSettings):
     app_port: int = 8000
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
 
-    # --- Offline only (ingestion / evaluation), never needed by the grader ---
-    vision_model: str | None = None
-    judge_model: str | None = None
-    eval_gen_model: str | None = None
-    cache_dir: str = "data/cache"
-    max_spend_usd: float = 5.0
+    # --- Offline only (ingestion), never needed by the grader ---
+    cache_dir: str = "data/cache"  # content-hash keyed embedding cache
 
     @property
     def chat_models(self) -> list[str]:

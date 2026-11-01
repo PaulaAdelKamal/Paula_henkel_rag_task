@@ -1,1 +1,4 @@
-"""Offline evaluation: datasets, retrieval metrics, Ragas and Langfuse experiments."""
+"""Offline evaluation assets: the golden dataset in eval/datasets/.
+
+Benchmarks and ablations are future work: docs/EXPERIMENTS.md.
+"""
