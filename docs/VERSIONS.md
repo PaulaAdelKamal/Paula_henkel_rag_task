@@ -37,7 +37,9 @@
 | pre-commit-hooks | 6.0.0 | dev |
 | detect-secrets | 1.5.0 | dev |
 | gitleaks | 8.30.1 | `zricethezav/gitleaks:v8.30.1` Docker image, locally and in CI |
-| pymupdf | 2.0 | ingest (AGPL-3.0, offline only) |
+| pymupdf | 2.0 | ingest (AGPL-3.0, offline only); chosen parser (ADR-0009) |
+| pdfplumber | 0.11.10 (pdfminer.six 20260107) | ingest (MIT); comparison only |
+| pypdf | 6.21.4 | ingest (BSD-3-Clause); comparison only, licence fallback |
 
 ## CI actions (pinned by commit SHA)
 

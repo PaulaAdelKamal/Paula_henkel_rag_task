@@ -120,3 +120,58 @@ Each entry: context, options, decision, consequences, evidence. Status is *accep
 - Validation errors name the variable and never echo its value.
 
 `.env.example` uses unquoted values with comments on their own lines, because `docker run --env-file` keeps quotes literally.
+
+---
+
+## ADR-0009: PyMuPDF (native content order) for PDF parsing; AGPL kept offline
+
+**Status:** accepted (Step 1)
+
+**Context.** The parser needs correct reading order on tables, diagrams and two-column pages, plus per-span typography (font, size, colour) to detect headings, lead-ins, links and callout labels.
+
+**Options.** PyMuPDF, native or geometric (`sort=True`) order; pdfplumber, default or layout; pypdf, plain or layout. All were scored on hand-written reading-order anchors on six hard pages (`scripts/compare_extractors.py`, results in `docs/PARSING_REPORT.md` §2).
+
+**Decision.** PyMuPDF in native content order: 36/36 anchors and 0.5 s for the whole document. pypdf plain ties on order but is 8× slower and gives no styles without custom code. pdfplumber garbles the doubly drawn callout labels ("FFaacceeTTiimmee") and interleaves the two columns on p. 162. PyMuPDF's `find_tables()` was rejected: it loses spaces and invents columns.
+
+**Licensing.** PyMuPDF is AGPL-3.0 (or commercial). It's used only in the offline `ingest` dependency group. It's never installed in the runtime Docker image and never offered as a network service, so the shipped chatbot doesn't link to or distribute AGPL code. The parsed output (`pages.jsonl`) is data, not a derivative of the library. If that ever became a concern, pypdf (BSD-3) gives identical reading order on these pages.
+
+---
+
+## ADR-0010: The printed TOC is the ground truth for the section map; the TOC is not retrievable
+
+**Status:** accepted (Step 1)
+
+**Decision.**
+- The TOC (pp. 2–7) defines chapters, appendices and page ranges.
+- Font-detected headings are validated against it: all 212 TOC sections appear as headings on their TOC page, and all 36 chapter titles match. The running footer is a second, independent source, and it agrees on all 118 footer pages.
+- Content types: `front_matter` (p. 1), `toc` (pp. 2–7), `chapter_opener`, `content`, `legal` (p. 162).
+- `toc` and `front_matter` will be **excluded from retrieval**. TOC lines like "45 Chapter 6: Mail" would match every Mail query and would cite p. 4 instead of the real page. They're kept as structured data in `toc.json` (usable for "which pages cover X" logic).
+- The legal page is retrievable and tagged `legal`: it is part of the document (e.g. who owns the IOS trademark).
+- Page numbering: `page` (used in citations) = printed page = `pdf_page_index` + 1, asserted by a test on every page that prints a number.
+
+---
+
+## ADR-0011: Diagram callout labels and table rows become first-class text elements
+
+**Status:** accepted (Step 1); figure captions from images are a separate experiment in Step 2
+
+**Context.**
+- The guide has no printed captions. Callout labels inside figures, such as the p. 8 anatomy diagram and the "Tap to edit." arrows on screenshots, are in the text layer: printed twice (white halo plus dark), wrapped over several lines, and in scrambled order.
+- Tables put each column on a separate text line.
+
+**Decision.**
+- Halo copies are dropped by colour.
+- Wrapped label lines are joined by line pitch, and labels are emitted column by column as one `figure_labels` element ("Figure labels: FaceTime camera; Receiver/front microphone; …") at the figure's position in the reading flow.
+- Table rows are rebuilt geometrically into `table_row` elements with `cells`.
+
+**Consequences.** 74 figure-label groups on 63 pages make the screenshots' instructions searchable (e.g. "Swipe left to use the level." on p. 108). Questions about the iPhone's buttons can retrieve p. 8. Column-major order is an approximation of how a reader scans a callout diagram.
+
+---
+
+## ADR-0012: Commit the parsed output
+
+**Status:** accepted (Step 1)
+
+**Decision.** `data/parsed/pages.jsonl` (1.1 MB) and `toc.json` are committed, while caches and renders stay ignored.
+
+**Why.** Reviewers can audit any page's structure without running the AGPL parser. The output is deterministic (no timestamps; parser version and source SHA-256 are recorded). Diffs on re-parse show exactly what a parser change did. During Step 1, a refactor was verified to produce byte-identical output.
