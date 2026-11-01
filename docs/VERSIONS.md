@@ -52,13 +52,15 @@
 | actions/checkout | v7.0.1 | 3d3c42e5aac5ba805825da76410c181273ba90b1 |
 | astral-sh/setup-uv | v10.3.3 | 68559e99cc807c1eb7e9238fd43a15bba460eec2 |
 
-## Models (provisional until the Step 9/10 benchmark)
+## Models (free OpenRouter models only; provisional until the Step 9/10 benchmark)
 
-Checked against the live OpenRouter listings on 2026-10-31.
+Checked against the live OpenRouter listings on 2026-11-01. Full registry and probe results: `docs/EMBEDDING_CANDIDATES.md`.
 
 | Role | Slug | Status |
 |---|---|---|
-| Chat | `openai/gpt-4.1-mini` | provisional default |
-| Embedding | `qwen/qwen3-embedding-8b` | provisional default (open weights, 40,960-token context, $0.01 / 1M tokens) |
+| Chat | `google/gemma-4-31b-it:free` | provisional default |
+| Embedding | `nvidia/nemotron-3.5-embed-1b:free` (2048-d) | provisional default, ingested |
+| Embedding | `liquid/lfm-2.5-embedding-350m:free` (1024-d) | ingested (benchmark candidate) |
+| Embedding | `nvidia/nemotron-3.5-embed-8b:free` (4096-d) | shortlisted, deferred (endpoint fails on batches) |
 | Vision captioning | not chosen yet | Step 2 |
 | Ragas judge | not chosen yet (must be a different family from chat) | Step 9 |

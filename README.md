@@ -4,7 +4,7 @@ A grounded chatbot that answers questions **only** from the *iOS 7.1 iPhone User
 
 Stack: LangGraph (orchestration) · Streamlit (UI) · Qdrant Cloud (vector store) · OpenRouter (chat and embedding models) · Langfuse (tracing and evaluation, optional).
 
-> **Status:** Step 3, parsing and chunking done (`data/parsed/`, `data/chunks/`). The chatbot is not runnable yet.
+> **Status:** Step 4, the index is built in Qdrant Cloud (2 free embedding models). The chatbot is not runnable yet.
 
 ## Quick start (final form, available from Step 7)
 
@@ -22,8 +22,10 @@ Provisional until the embedding benchmark (Step 9) and the ablations (Step 10). 
 
 | Role | Model |
 |---|---|
-| Chat | `openai/gpt-4.1-mini` (via OpenRouter) |
-| Embeddings | `qwen/qwen3-embedding-8b` (via OpenRouter) |
+| Chat | `google/gemma-4-31b-it:free` (via OpenRouter, free) |
+| Embeddings | `nvidia/nemotron-3.5-embed-1b:free` (via OpenRouter, free, 2048-d) |
+
+Only free OpenRouter models are used. A free-tier key allows 50 free-model requests per day (1000 with $10 of credit), so heavy use can hit rate limits.
 
 ## Development
 
@@ -34,6 +36,8 @@ uv run python -m scripts.check_connections # verify OpenRouter, Qdrant, Langfuse
 uv run python -m ingestion.parse_pdf        # re-parse the PDF into data/parsed/
 uv run python -m ingestion.figures          # figure regions -> data/parsed/figures.jsonl
 uv run python -m ingestion.chunking --grid  # chunk every config -> data/chunks/
+uv run python -m ingestion.ingest --all --plan   # request budget, no API calls (then --yes)
+uv run python -m ingestion.verify_index     # collection health + sanity query + keep-alive
 uv run python -m pre_commit install --hook-type pre-commit --hook-type pre-push
 ```
 
@@ -44,5 +48,6 @@ The pre-commit hooks run ruff and gitleaks from Docker images, so Docker must be
 - `docs/DECISIONS.md`: decision log (ADRs)
 - `docs/PARSING_REPORT.md`: PDF forensics, extractor comparison, parser design and spot check
 - `docs/CHUNKING.md`: chunking strategy, grid, distributions and the chunk metadata schema
+- `docs/EMBEDDING_CANDIDATES.md`: free embedding models, prefixes, probe and ingestion results
 - `docs/VERSIONS.md`: pinned library and model versions
 - `docs/ARCHITECTURE.md`, `docs/EXPERIMENTS.md`, `docs/INTERVIEW_PREP.md`

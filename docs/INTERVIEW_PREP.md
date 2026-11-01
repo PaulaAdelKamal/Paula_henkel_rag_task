@@ -176,3 +176,56 @@ BGE, E5 and GTE truncate input at 512 tokens. An 800-token chunk would be silent
 
 **8. What would make you change the chunking?**
 Step 10 evidence on page-level hit@k and MRR across the grid, with confidence intervals. If size 200 or 500, overlap, or "header off" win beyond noise, the default changes and an ADR records it. If the differences are within noise, the simpler or cheaper option stays.
+
+---
+
+## Step 4: what I must be able to explain
+
+**1. Which embedding models, and why only free ones?**
+The project uses free OpenRouter models only. Five free embedding models exist, all of which are in the registry with their dimensions and prefixes. Three were shortlisted to span sizes and architectures: Nemotron 3.5 1B, Nemotron 3.5 8B, and LFM 2.5 350M with its 512-token limit. Two are ingested; the 8B endpoint fails on batched requests (details below). The winner is decided by the Step 9 benchmark, not by model size.
+
+**2. Why do query/document prefixes matter, and how did you get them right?**
+- These models were trained with different texts on the query and document sides ("query: " vs "passage: ").
+- A wrong or missing prefix doesn't error. It silently lowers recall, because queries and documents land in inconsistent regions of the space.
+- I took the exact strings from each model's `config_sentence_transformers.json`. LFM is the trap: its document prefix is "document: ", not "passage: ".
+- Then I probed the hosted endpoint: embedding "X" and "query: X" gave cosine 0.94 (Nemotron) and 0.98 (LFM). So the prefix reaches the model and isn't added upstream; adding it twice would have been the other silent failure.
+
+**3. Why did you write your own embeddings client instead of using OpenAIEmbeddings?**
+`OpenAIEmbeddings` doesn't apply per-model prefixes, doesn't expose token usage, retries an exhausted daily quota as if it were a temporary rate limit, and has no persistent cache. My client implements LangChain's `Embeddings` interface, so the RAG graph can use it unchanged, and adds:
+- prefixes;
+- adaptive batch size;
+- quota-aware retries;
+- a dimension check on every response;
+- an SQLite cache keyed by content hash.
+
+It's tested offline against a mocked HTTP transport.
+
+**4. How is ingestion idempotent?**
+- Point ids are deterministic UUIDv5s computed from (chunk config, page, embedded text).
+- Ingestion diffs the chunk ids against the collection's: it only embeds and upserts missing points and deletes stale ones.
+- Vectors are cached by content hash.
+- Proven: the second run made 0 API requests and changed nothing.
+
+**5. Why one collection per embedding model?**
+- Dimensions differ (1024, 2048, 4096), and a Qdrant collection has one vector size.
+- Separate collections also let the benchmark compare models on identical chunks, and let the runtime switch models through one environment variable.
+- Names encode model and chunk config: `iphone_guide__<model>__<chunk_hash>`. A collection can never be queried with the wrong model or stale chunks.
+
+**6. What went wrong, and how did you handle it?**
+- **Nemotron 3.5 8B:** its free endpoint returned 502 on every batched request, at 3 inputs and at 16, while single inputs worked. My first run used 5 retries per batch, which could have burned the day's quota. I added `--max-retries` and `--batch-size`, confirmed the cause with one single-input request, and stopped. Finishing it needs about 42+ requests at small batch sizes, more than a day's quota. I deleted the empty collection it left behind.
+- **Free-tier cap:** 50 requests per day, shared with the chat model. Every call goes through the cache and a `--plan` mode that makes no API calls and prints the request budget first.
+
+**7. How do you know the index is correct?**
+`verify_index.py` checks each collection:
+- point count equals chunk count (336);
+- the dimension matches the model;
+- a sanity query, "How do I close an app?", returns page 22 at rank 1 for both models.
+
+It also keeps the free Qdrant cluster active (suspended after a week idle). I'll rerun it before submission and before the interview.
+
+**8. What are the risks of building on free models?**
+- Availability: they can be rate-limited or withdrawn.
+- Data policy: free endpoints may retain prompts, which is fine for a public Apple manual but not for private data.
+- The grader's own key also hits free-tier limits.
+
+Mitigations: the startup self-check reports a failing model clearly; model switching is one variable once that model's collection exists; and the limits are documented in the README.

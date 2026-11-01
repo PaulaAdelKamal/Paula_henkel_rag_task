@@ -251,3 +251,66 @@ Retrieval evidence comes in Steps 9–10.
 - `content_type` is `text | table | legal` (figures are inline labels, not separate chunks; the TOC is never chunked).
 - `subsection_titles` is a list.
 - Added `lead_ins` (task titles: keyword anchors and readable citation labels), `partial` and `element_refs`.
+
+---
+
+## ADR-0016: Free OpenRouter embedding models only; three shortlisted
+
+**Status:** accepted (Step 4; the free-only constraint and the 3-model shortlist were set by the project owner)
+
+**Context.** The OpenRouter key is on the free tier: 50 free-model requests per day, shared by embeddings and the free chat model. Five free embedding models exist (Nemotron 3.5 1B and 8B, Nemotron 3 1B, Llama Nemotron Embed VL 1B v2, LFM 2.5 350M). One ingestion takes about 6 batched requests per model.
+
+**Decision.**
+- All five go in the registry, with prefixes and dimensions from their model cards.
+- Three were shortlisted for ingestion:
+  - Nemotron 3.5 1B, which is also the runtime default;
+  - Nemotron 3.5 8B, the large end;
+  - LFM 2.5 350M, the small end, with a different architecture and a 512-token limit.
+- Nemotron 3.5 1B and LFM are ingested. Nemotron 3.5 8B is deferred because its hosted endpoint returns 502 on every batched request (single inputs work), which would cost more than a day's quota.
+
+**Consequences.**
+- The benchmark currently has two models, both returning the right page at rank 1 on the sanity query.
+- Results from free endpoints depend on availability and rate limits, so they must be documented as such.
+- The model choice is a one-variable change through the registry, but each model needs its own collection.
+- The 50/day cap must be resolved before evaluation (Step 8): either add $10 of credit for 1000/day, still on free models, or design evaluation around the cap.
+
+---
+
+## ADR-0017: Custom LangChain `Embeddings` client instead of `OpenAIEmbeddings`
+
+**Status:** accepted (Step 4)
+
+**Context.** `langchain_openai.OpenAIEmbeddings` with `check_embedding_ctx_length=False` can call OpenRouter, but:
+- it adds no per-model query/document prefixes (`embed_query` is just `embed_documents([text])[0]`);
+- it exposes no token usage;
+- it can't tell a per-minute rate limit (retry) from an exhausted daily quota (stop);
+- it has no persistent cache.
+
+**Decision.** `app/embeddings.py` implements LangChain's `Embeddings` interface over `httpx` (about 150 lines). It provides:
+- per-model prefixes from the `EmbeddingSpec` registry;
+- batching that halves the batch size on size errors;
+- retries with backoff on 429/5xx, honouring `Retry-After`;
+- an immediate `QuotaExhausted` on the daily cap;
+- detection of errors returned inside a 200 response;
+- a dimension check on every response;
+- L2 normalisation;
+- usage and request counters;
+- an optional SQLite cache keyed by the hash of (model, text).
+
+It plugs into LangChain and LangGraph like any other `Embeddings`.
+
+**Consequences.** More code to own, but it's covered by 11 offline tests against a mocked transport. The quota-aware behaviour is what made it possible to ingest two models in 12 requests without wasting any.
+
+---
+
+## ADR-0018: Idempotent ingestion by deterministic ids
+
+**Status:** accepted (Step 4)
+
+**Decision.**
+- Point ids are the chunks' UUIDv5s.
+- Ingestion computes the difference between the chunk ids and the collection's ids: it embeds and upserts only the missing ones and deletes stale ones. A changed chunk has a new id, so the old version is deleted and the new one added.
+- Vectors are cached by content hash.
+- A no-op run makes no API calls and keeps the report of the run that actually built the collection.
+
+**Evidence.** A second run on both collections made 0 embedding requests, 0 upserts and 0 deletes.
