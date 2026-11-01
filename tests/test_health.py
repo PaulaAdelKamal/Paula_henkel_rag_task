@@ -1,5 +1,5 @@
 from app.config import Settings
-from scripts.check_connections import check_langfuse, redact, run_check
+from app.health import Check, check_langfuse, redact, run_check
 
 SECRET = "sk-or-v1-very-secret"  # pragma: allowlist secret
 
@@ -27,10 +27,19 @@ def test_failure_line_never_contains_the_key():
         raise RuntimeError(f"401 Unauthorized: Bearer {SECRET}")
 
     result = run_check("OpenRouter", boom, settings())
-    assert result.status == "FAIL"
+    assert result.status == "FAIL" and result.blocking
     assert SECRET not in result.detail
     assert "RuntimeError" in result.detail
 
 
+def test_optional_service_failure_only_warns():
+    def boom(_s):
+        raise ConnectionError("langfuse down")
+
+    result = run_check("Langfuse", boom, settings(), required=False)
+    assert result.status == "WARN" and not result.blocking
+
+
 def test_langfuse_is_skipped_without_keys():
-    assert check_langfuse(settings()).status == "SKIP"
+    check = check_langfuse(settings())
+    assert check == Check("Langfuse", "SKIP", check.detail, False) and not check.blocking
