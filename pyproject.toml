@@ -1,0 +1,57 @@
+[project]
+name = "iphone-guide-rag"
+version = "0.0.1"
+description = "Grounded RAG chatbot over the iOS 7.1 iPhone User Guide (LangGraph + Streamlit + Qdrant Cloud + OpenRouter)."
+readme = "README.md"
+requires-python = ">=3.14,<3.15"
+# Runtime dependencies only: this is exactly what goes into the Docker image.
+# Exact versions are pinned in uv.lock and recorded in docs/VERSIONS.md.
+dependencies = [
+    "httpx>=0.28",
+    "langchain>=1.4",
+    "langchain-openai>=1.7",
+    "langfuse>=5.1",
+    "langgraph>=1.2",
+    "pydantic-settings>=2.16",
+    "qdrant-client>=1.20",
+    "streamlit>=1.66",
+    "truststore>=0.10",
+]
+
+[dependency-groups]
+# Local development only (never installed in the image).
+dev = [
+    "detect-secrets>=1.5",
+    "pre-commit>=4.0",
+    "pre-commit-hooks>=6.0",
+    "pytest>=9.0",
+    "python-dotenv>=1.0",
+    "ruff>=0.17",
+]
+# Offline PDF parsing / ingestion (never installed in the image).
+# PyMuPDF is AGPL-3.0: acceptable for an offline tool that is not distributed
+# as part of the runtime image (see docs/DECISIONS.md).
+ingest = [
+    "pymupdf>=1.25",
+]
+
+[tool.uv]
+# Application, not a library: no build backend, run modules from the repo root.
+package = false
+default-groups = ["dev", "ingest"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py314"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "S"]
+ignore = ["S101"]  # assert is fine in tests
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
