@@ -1,0 +1,35 @@
+# --- Secrets (keep these first) ---
+.env
+.env.*
+!.env.example
+
+# --- Private / non-runtime files ---
+PROJECT_BRIEF.md
+CLAUDE_CODE_MASTER_PROMPT.md
+iPhone User Guide 1.pdf
+.git
+.github
+.pre-commit-config.yaml
+docs/
+eval/
+tests/
+ingestion/
+scripts/
+notebooks/
+*.ipynb
+
+# --- Caches and generated data ---
+data/cache/
+data/parsed/
+data/chunks/
+data/reports/
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.files/
+.vscode/
+.idea/
+*.zip

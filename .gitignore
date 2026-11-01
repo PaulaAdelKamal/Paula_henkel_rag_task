@@ -1,0 +1,41 @@
+# --- Secrets (keep these first) ---
+.env
+.env.*
+!.env.example
+
+# --- Private working brief (not a deliverable) ---
+PROJECT_BRIEF.md
+CLAUDE_CODE_MASTER_PROMPT.md
+
+# Original copy of the source PDF (canonical copy lives in data/source/)
+/iPhone User Guide 1.pdf
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# --- Data caches and generated artefacts ---
+data/cache/
+data/parsed/
+data/chunks/
+data/reports/
+eval/reports/raw/
+
+# --- Tooling / OS / editors ---
+.chainlit/translations/
+.files/
+.ipynb_checkpoints/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.zip
