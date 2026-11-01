@@ -1,0 +1,71 @@
+# Install once:          uv run python -m pre_commit install --hook-type pre-commit --hook-type pre-push
+# Run on everything:     uv run python -m pre_commit run --all-files
+#
+# All hooks are `repo: local` on purpose: the dev machine's application control
+# blocks freshly downloaded native binaries (ruff.exe, gitleaks.exe, Go), so
+# Python tools run as modules from the project venv and native tools run from
+# their official Docker images (Docker Desktop must be running). See ADR-0003.
+repos:
+  - repo: local
+    hooks:
+      # --- Secret scanning (two independent scanners) ---
+      - id: detect-secrets
+        name: detect-secrets (baseline)
+        entry: uv run --no-sync python -m detect_secrets.pre_commit_hook --baseline .secrets.baseline
+        language: system
+        exclude: ^(uv\.lock|\.secrets\.baseline)$
+      - id: gitleaks
+        name: gitleaks (staged changes)
+        entry: zricethezav/gitleaks:v8.30.1 git --pre-commit --redact --staged --verbose
+        language: docker_image
+        pass_filenames: false
+      - id: gitleaks-history
+        name: gitleaks (full history, before push)
+        entry: zricethezav/gitleaks:v8.30.1 git --redact --verbose
+        language: docker_image
+        pass_filenames: false
+        stages: [pre-push]
+
+      # --- Hygiene ---
+      - id: detect-private-key
+        name: detect private key
+        entry: uv run --no-sync python -m pre_commit_hooks.detect_private_key
+        language: system
+        types: [text]
+      - id: check-added-large-files
+        name: check for large files
+        # the 2.4 MB source PDF is committed on purpose
+        entry: uv run --no-sync python -m pre_commit_hooks.check_added_large_files --maxkb=5000
+        language: system
+      - id: check-yaml
+        name: check yaml
+        entry: uv run --no-sync python -m pre_commit_hooks.check_yaml
+        language: system
+        types: [yaml]
+      - id: check-toml
+        name: check toml
+        entry: uv run --no-sync python -m pre_commit_hooks.check_toml
+        language: system
+        types: [toml]
+      - id: end-of-file-fixer
+        name: fix end of files
+        entry: uv run --no-sync python -m pre_commit_hooks.end_of_file_fixer
+        language: system
+        types: [text]
+      - id: trailing-whitespace
+        name: trim trailing whitespace
+        entry: uv run --no-sync python -m pre_commit_hooks.trailing_whitespace_fixer
+        language: system
+        types: [text]
+
+      # --- Lint / format ---
+      - id: ruff-check
+        name: ruff check
+        entry: --entrypoint /ruff ghcr.io/astral-sh/ruff:0.17.3 check --fix
+        language: docker_image
+        types: [python]
+      - id: ruff-format
+        name: ruff format
+        entry: --entrypoint /ruff ghcr.io/astral-sh/ruff:0.17.3 format
+        language: docker_image
+        types: [python]
