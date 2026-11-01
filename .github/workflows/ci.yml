@@ -25,6 +25,35 @@ jobs:
       - name: Unit tests (offline, no paid API calls)
         run: uv run pytest
 
+  docker-image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build the image exactly as the grader does
+        run: docker build --build-arg GIT_SHA=${GITHUB_SHA::7} -t chatbot:1.0 .
+      - name: Image hygiene (no secrets, no offline code, no AGPL parser, non-root)
+        run: |
+          docker run --rm --entrypoint sh chatbot:1.0 -c '
+            set -e
+            test ! -e /app/.env
+            test ! -d /app/ingestion && test ! -d /app/tests && test ! -d /app/eval
+            test "$(id -u)" != "0"
+            python -c "import importlib.util, sys; sys.exit(importlib.util.find_spec(\"pymupdf\") is not None)"
+            test -f /app/data/source/iPhone_User_Guide_1.pdf'
+          docker image inspect chatbot:1.0 --format 'image size: {{.Size}} bytes'
+      - name: Boots healthy without keys and serves the UI (readable startup error, no crash)
+        run: |
+          printf 'APP_PORT=8000\n' > ci.env
+          docker run -d --name app -p 8000:8000 --env-file ci.env chatbot:1.0
+          for i in $(seq 1 45); do
+            curl -fsS http://localhost:8000/_stcore/health && break
+            sleep 2
+          done
+          curl -fsS http://localhost:8000/_stcore/health
+          curl -fsS http://localhost:8000/ | grep -q "<title>"
+          test "$(docker inspect -f '{{.State.Running}}' app)" = "true"
+          docker logs app | tail -n 20
+
   secret-scan:
     runs-on: ubuntu-latest
     steps:
