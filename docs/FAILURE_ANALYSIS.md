@@ -38,12 +38,13 @@ What the chatbot does with hostile or unusual input, what broke while it was bui
 | 10 | Model, quota or Qdrant errors raised to the UI as "Something went wrong (QuotaExhausted)", and crashed the CLI | Step 11 review | Graph classifies errors: rate-limit, unavailable or unverifiable answer, each with a plain message | `test_exhausted_quota_during_retrieval_gives_a_clear_message`, `test_unreachable_vector_store_gives_a_clear_message`, `test_provider_rate_limit_after_fallbacks_is_reported_as_rate_limit` |
 | 11 | HTTP client libraries logged every request URL (including the Qdrant host) at INFO | Step 11 log review | `configure_logging` caps them at WARNING unless `LOG_LEVEL=DEBUG` | `test_noisy_http_loggers_are_capped` |
 | 12 | A test depended on the committed dataset's review status and broke when the review was recorded | CI | Test uses its own fixtures | `test_csv_round_trip_applies_reviewer_edits` |
+| 13 | The gitleaks allowlist for `.secrets.baseline` was anchored (`^…$`), so it only worked in git mode; a directory scan of the extracted source ZIP flagged the audited hash | ZIP verification (Step 12) | Regex `(^|/)\.secrets\.baseline$` | ZIP and history both scan clean |
 
 ## 3. Log and secret hygiene
 
 - Keys are `SecretStr` (masked in reprs). Health-check and CLI messages are passed through `redact()`. Keys travel only in request headers, which no library logs at INFO.
 - User questions and answers go only to Langfuse traces (opt-in through keys), never to stdout logs.
-- `gitleaks` over the full history: **66 commits scanned, no leaks** (2026-11-01). No `.env` has ever been committed. detect-secrets and gitleaks run on every commit, gitleaks on every push, and CI scans again.
+- `gitleaks` over the full history: **74 commits scanned, no leaks**, and over the extracted source ZIP (directory mode): no leaks (2026-11-01). No `.env` has ever been committed. detect-secrets and gitleaks run on every commit, gitleaks on every push, and CI scans again.
 - The image contains no `.env` (asserted in CI).
 
 ## 4. Known limitations

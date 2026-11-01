@@ -4,4 +4,4 @@ useDefault = true
 
 [[allowlists]]
 description = "detect-secrets baseline: stores SHA-1 hashes of audited false positives, never raw secrets"
-paths = ['''^\.secrets\.baseline$''']
+paths = ['''(^|/)\.secrets\.baseline$''']  # repo-relative (git mode) or absolute (dir mode)
