@@ -4,7 +4,7 @@ A grounded chatbot that answers questions **only** from the *iOS 7.1 iPhone User
 
 Stack: LangGraph (orchestration) · Streamlit (UI) · Qdrant Cloud (vector store) · OpenRouter (chat and embedding models) · Langfuse (tracing and evaluation, optional).
 
-> **Status:** Step 4, the index is built in Qdrant Cloud (2 free embedding models). The chatbot is not runnable yet.
+> **Status:** Step 5, the RAG pipeline works in the terminal (`uv run python -m app.cli`). The web UI and Docker image come in Steps 6–7.
 
 ## Quick start (final form, available from Step 7)
 
@@ -22,7 +22,7 @@ Provisional until the embedding benchmark (Step 9) and the ablations (Step 10). 
 
 | Role | Model |
 |---|---|
-| Chat | `google/gemma-4-31b-it:free` (via OpenRouter, free) |
+| Chat | `google/gemma-4-31b-it:free`, falling back to `nvidia/nemotron-3.5-super-vl:free`, then `google/gemma-4-26b-a4b-it:free` (via OpenRouter, free) |
 | Embeddings | `nvidia/nemotron-3.5-embed-1b:free` (via OpenRouter, free, 2048-d) |
 
 Only free OpenRouter models are used. A free-tier key allows 50 free-model requests per day (1000 with $10 of credit), so heavy use can hit rate limits.
@@ -38,6 +38,7 @@ uv run python -m ingestion.figures          # figure regions -> data/parsed/figu
 uv run python -m ingestion.chunking --grid  # chunk every config -> data/chunks/
 uv run python -m ingestion.ingest --all --plan   # request budget, no API calls (then --yes)
 uv run python -m ingestion.verify_index     # collection health + sanity query + keep-alive
+uv run python -m app.cli --debug            # chat in the terminal (answers + Sources)
 uv run python -m pre_commit install --hook-type pre-commit --hook-type pre-push
 ```
 

@@ -58,7 +58,9 @@ Checked against the live OpenRouter listings on 2026-11-01. Full registry and pr
 
 | Role | Slug | Status |
 |---|---|---|
-| Chat | `google/gemma-4-31b-it:free` | provisional default |
+| Chat | `google/gemma-4-31b-it:free` | provisional primary (often rate-limited upstream) |
+| Chat fallback 1 | `nvidia/nemotron-3.5-super-vl:free` | answered all Step 5 gate questions |
+| Chat fallback 2 | `google/gemma-4-26b-a4b-it:free` | |
 | Embedding | `nvidia/nemotron-3.5-embed-1b:free` (2048-d) | provisional default, ingested |
 | Embedding | `liquid/lfm-2.5-embedding-350m:free` (1024-d) | ingested (benchmark candidate) |
 | Embedding | `nvidia/nemotron-3.5-embed-8b:free` (4096-d) | shortlisted, deferred (endpoint fails on batches) |

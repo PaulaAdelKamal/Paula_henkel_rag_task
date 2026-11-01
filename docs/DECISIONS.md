@@ -314,3 +314,67 @@ It plugs into LangChain and LangGraph like any other `Embeddings`.
 - A no-op run makes no API calls and keeps the report of the run that actually built the collection.
 
 **Evidence.** A second run on both collections made 0 embedding requests, 0 upserts and 0 deletes.
+
+---
+
+## ADR-0019: RAG graph shape and budget
+
+**Status:** accepted (Step 5)
+
+**Decision.** A LangGraph state machine: `prepare` -> `condense` (only with history) -> `retrieve` -> relevance gate -> `generate` -> validation -> answer or refusal. Every collaborator (retriever, answerer, condenser) is injected, so the real graph is unit-tested with stubs at no cost (16 tests). Conversation memory uses a checkpointer keyed by `thread_id`.
+
+**Why.**
+- At most one embedding and one chat request per question, plus one for a follow-up rewrite, which matters under a 50-request daily free cap.
+- The first turn skips the rewrite.
+- The gate can end a turn before any chat call.
+- Failures degrade instead of crashing: a failed rewrite falls back to the raw question, and a failed answer becomes a clear message that still lists the searched sections.
+
+**Rejected.**
+- A separate LLM "relevance grader" node: it adds one request per turn, and the structured `answerable` flag already makes that decision.
+- Agentic tool-calling loops: unbounded cost, and harder to guarantee citations.
+
+---
+
+## ADR-0020: Citations from metadata, source numbers from the model; refusal wording
+
+**Status:** accepted (Step 5)
+
+**Decision.**
+- The model sees numbered sources without page numbers and returns `used_sources`.
+- Code validates the numbers (invented ones are dropped) and renders citations from chunk metadata as `Page 22 · Chapter 3: Basics > Use apps > Multitasking`; ranges appear as `Pages 12–13`.
+- `answerable` without a valid source becomes a refusal.
+- The refusal wording is "I couldn't find the answer to that in the iPhone User Guide for iOS 7.1, so I can't answer it. I only answer from that guide."
+- Refusals are followed by "**Closest sections searched (not sources of an answer)**" with the top 3 distinct sections in relevance order.
+
+**Why.**
+- A page number typed by the model can be wrong; a page number read from metadata can't.
+- The brief requires page/section info on every response, refusals included, and labelling the list as non-sources keeps that honest.
+
+---
+
+## ADR-0021: Free chat model with an OpenRouter fallback chain
+
+**Status:** accepted (Step 5)
+
+**Context.** `google/gemma-4-31b-it:free` has a single upstream provider (Google AI Studio) and returned 429 "Provider returned error" on every answer call during the Step 5 checks.
+
+**Decision.**
+- Send OpenRouter's `models` list, which is tried in order on any error, rate limits included: `google/gemma-4-31b-it:free` -> `nvidia/nemotron-3.5-super-vl:free` -> `google/gemma-4-26b-a4b-it:free`.
+- The list is configured with `CHAT_FALLBACK_MODELS`, and non-free entries are ignored, so a fallback can never cost money.
+- The answering model is recorded in `model_used`.
+- The answer is requested as a function call, because Gemma's free endpoint supports tools but not strict JSON-schema output. JSON in the text is a parse fallback.
+
+**Consequences.** Answers may come from different models from turn to turn. All 8 Step 5 gate answers came from Nemotron 3.5 Super VL. The chat model comparison in Step 10 decides the primary, and Langfuse (Step 6) will show which model answered each turn.
+
+---
+
+## ADR-0022: The relevance threshold is a pre-filter, not the decision
+
+**Status:** provisional (Step 5; calibrated in Step 10)
+
+**Evidence.** In the manual gate, the unanswerable "How do I set up Face ID?" had a top cosine of 0.483, while the answerable "How do I take a screenshot?" had 0.318.
+
+**Decision.**
+- The answerable/unanswerable decision is the model's structured `answerable` flag, backed by code validation of its sources.
+- `RELEVANCE_THRESHOLD` (default 0.0, i.e. off) only short-circuits clearly off-topic queries to save a request.
+- It will be calibrated per embedding model from the score distributions of answerable and unanswerable evaluation questions.
