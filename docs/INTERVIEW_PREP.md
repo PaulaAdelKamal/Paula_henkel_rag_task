@@ -329,3 +329,44 @@ The lesson: stubs test my logic, but integration bugs need a live run.
 - Optionally, the Langfuse keys.
 
 A failing required check shows a human-readable error screen naming the problem: no stack trace, no key value (messages are redacted).
+
+---
+
+## Step 7: what I must be able to explain
+
+**1. Walk me through the Dockerfile.**
+- **Builder:** pinned `python:3.14-slim` plus uv. It copies `pyproject.toml` and `uv.lock` and runs `uv sync --frozen --no-default-groups`, so only runtime dependencies are installed, at the exact locked versions, into `/app/.venv`.
+- **Runtime:** the same base image, a non-root user, the venv, `app/`, the Streamlit config and the PDF; nothing else.
+- **Healthcheck:** probes `/_stcore/health` with Python.
+- **Command:** `exec`s Streamlit on `0.0.0.0:${APP_PORT:-8000}`.
+
+The image is 227 MB.
+
+**2. How do you know the grader's five steps work?**
+- `scripts/grader_dryrun` clones the committed repository into a temp dir (so uncommitted files can't make it pass), copies `.env`, builds, runs with `-p 8000:8000 --env-file .env`, waits for health and checks the UI is served.
+- Then it pipes a smoke script into the container's own Python, which drives the real UI with Streamlit's `AppTest` and requires an answer with Sources and a page number.
+- It passed: page 22 cited for "close an app".
+- CI repeats the build and boot on Linux on every push.
+
+**3. Why is there no ingestion at startup?**
+- The index is built offline and lives in Qdrant Cloud.
+- At startup the app only verifies it: the collection exists, isn't empty and has the right dimension.
+- Startup is fast, and the grader needs only keys. The free-cluster inactivity risk is handled by `verify_index.py`, rerun before submission.
+
+**4. How are secrets kept out of the image?**
+- `.env` is in `.dockerignore`, and the Dockerfile copies only four explicit paths anyway.
+- Config comes from `--env-file` at run time.
+- CI asserts there's no `/app/.env` in the image.
+- Secret scanners run on every commit and push.
+
+**5. What did the TLS-inspecting proxy cost you, and how did you keep it out of the deliverable?**
+- On my machine, a corporate proxy re-signs HTTPS, so uv inside `docker build` and the app inside the container both reject certificates.
+- I added an optional BuildKit secret for a CA bundle (`required=false`) and a run-time mount with `SSL_CERT_FILE`.
+- A grader's plain `docker build` and `docker run` never see any of it. It's documented as dev-only.
+
+**6. Why is the shell dry-run tested in CI and not locally?**
+My machine's application control blocks Git Bash's coreutils (`mktemp`, `sleep`, `cp`). So locally I ran the cross-platform Python twin (passed), linted the shell version with ShellCheck (clean), and CI runs the shell script end to end on Linux. I didn't want to claim it works without running it somewhere.
+
+**7. What's in the 227 MB, and could it be smaller?**
+- Most of it is Streamlit's tree (pyarrow, pandas, numpy) plus the Python base.
+- Options: a distroless or `-slim` multi-arch tuning pass, or a lighter UI framework. Not worth the risk for an assessment: the build is reproducible, and startup is fast because nothing downloads at boot.

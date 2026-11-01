@@ -8,7 +8,8 @@
 |---|---|---|
 | Python | 3.14 (3.14.2 locally) | ADR-0001 |
 | uv | 0.9.18 locally | lock format is forward compatible |
-| Docker base image | decided in Step 7 | will match Python 3.14 |
+| Docker base image | `python:3.14-slim` = 3.14.10 on Debian trixie, digest `sha256:cd89c30e…` | builder + runtime (ADR-0025) |
+| uv in the image | `ghcr.io/astral-sh/uv:0.13.6`, digest `sha256:af22a52f…` | builder stage only |
 
 ## Runtime dependencies (shipped in the image)
 

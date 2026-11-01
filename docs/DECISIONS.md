@@ -410,3 +410,32 @@ It plugs into LangChain and LangGraph like any other `Embeddings`.
 **Pitfall found and fixed.** The startup check validated the keys by creating an SDK client and calling `shutdown()`. Langfuse v5 shares one client per public key in the process, so this also shut down the tracer's client, and the feedback score was dropped ("Langfuse client has been shut down"). The health check now calls the REST API directly (`GET /api/public/projects` with basic auth) and never touches the SDK singleton.
 
 **Evidence.** A live trace showed 21 observations, retrieval metadata on `rag-turn`, the answering model, and `user-feedback = 1.0` attached to the trace. With the keys removed, answering still worked.
+
+---
+
+## ADR-0025: Container build and run
+
+**Status:** accepted (Step 7)
+
+**Decisions.**
+- **Multi-stage build:** a uv builder installs `[project.dependencies]` from the frozen lock (`--no-default-groups`, so no dev or ingest groups); the runtime stage copies only the venv and the four runtime paths.
+- **Pinned bases:** Python 3.14.10 slim (trixie) and uv 0.13.6, by tag and digest, for reproducible builds.
+- **Non-root user, healthcheck, port:**
+  - The container runs as `app`.
+  - `HEALTHCHECK` probes Streamlit's `/_stcore/health` with Python, since there's no curl in the slim image.
+  - The default port is 8000, and `APP_PORT` from `--env-file` is honoured through a shell-form `CMD` that `exec`s Streamlit, so it stays PID 1 and receives signals.
+- **Telemetry off:** Streamlit usage stats (config file and env var).
+- **Behind a TLS-inspecting proxy (dev only):** an optional BuildKit secret `ca_bundle` sets `SSL_CERT_FILE` for uv during the build, and a mounted bundle plus `SSL_CERT_FILE` covers run time (`truststore` reads the system store). The grader's plain build ignores the secret, which is `required=false`.
+
+**Verification.**
+- `scripts/grader_dryrun.py` passed from a clean clone, smoke question included.
+- CI builds the image without secrets and asserts:
+  - no `.env`, no offline code or tests, no PyMuPDF;
+  - a non-root user;
+  - with no keys at all, the container stays up, is healthy and serves the UI, which shows the readable startup-error screen.
+- CI also runs `scripts/grader_dryrun.sh` end to end on Linux, with the smoke question skipped since CI has no keys. ShellCheck is clean.
+
+**Rejected.**
+- Alpine: Python wheels such as pyarrow and pypdfium2 are glibc builds.
+- Baking a `.env` or keys into the image.
+- Downloading models at container start: all models are API calls, so the container is ready as soon as Streamlit is.

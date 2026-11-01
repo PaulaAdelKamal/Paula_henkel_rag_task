@@ -116,3 +116,27 @@ One trace per chat turn:
 Without keys, or on any Langfuse error, every tracing call is a no-op and answering works unchanged.
 
 **Verified live (2026-11-01).** A turn traced with 21 observations. `rag-turn` carried the retrieval metadata and `model_used = nvidia/nemotron-3.5-super-vl:free`. The thumbs-up arrived as `user-feedback = 1.0` on that trace. With the keys removed, the app answered normally, and the status panel showed Langfuse as SKIP.
+
+## Deployment (single container)
+
+```
+docker build -t chatbot:1.0 .
+  builder: python:3.14-slim (3.14.10, trixie) + uv 0.13.6, both pinned by digest
+           uv sync --frozen --no-default-groups  ->  /app/.venv (runtime dependencies only)
+  runtime: same base image, non-root user `app` (uid 999)
+           /app/.venv, app/, .streamlit/config.toml, data/source/iPhone_User_Guide_1.pdf
+           HEALTHCHECK  python -> http://127.0.0.1:$APP_PORT/_stcore/health
+           CMD          streamlit run app/ui.py --server.address 0.0.0.0 --server.port ${APP_PORT:-8000}
+docker run -p 8000:8000 --env-file .env chatbot:1.0
+```
+
+- **Image size:** 227 MB, as reported by `docker image inspect`. Most of it is Streamlit's dependency tree (pyarrow, pandas, numpy).
+- **Not in the image:** ingestion, evaluation, tests, scripts, docs, the parsed data, PyMuPDF and dev tools. CI asserts this.
+- **Config:** comes only from `--env-file`; nothing is baked into the image (no `.env`, no keys).
+- **Logs:** to stdout, at `LOG_LEVEL`.
+
+**Grader dry-run (2026-11-01, `scripts/grader_dryrun.py`).**
+- Clean clone of the committed repository.
+- `docker build` (65 s in total with the layer cache), then `docker run -p 8000:8000 --env-file .env`.
+- Healthy and serving the UI 51 s after the start of the run.
+- Smoke question through the real UI inside the container: "How do I close an app that isn't working?" returned the multitasking steps with **Sources: Page 22 · Chapter 3: Basics > Use apps > Multitasking** (and p. 154).

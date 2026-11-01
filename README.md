@@ -4,17 +4,34 @@ A grounded chatbot that answers questions **only** from the *iOS 7.1 iPhone User
 
 Stack: LangGraph (orchestration) · Streamlit (UI) · Qdrant Cloud (vector store) · OpenRouter (chat and embedding models) · Langfuse (tracing and evaluation, optional).
 
-> **Status:** Step 6, web UI and Langfuse tracing work locally (`uv run python -m streamlit run app/ui.py`, then open http://localhost:8000). The Docker image comes in Step 7.
+> **Status:** Step 7, runs in a single Docker container. Evaluation and tuning (Steps 8–10) are in progress.
 
-## Quick start (final form, available from Step 7)
+## Quick start
 
-1. `git clone <repo>`
-2. `cp .env.example .env` and fill in the keys
+1. `git clone https://github.com/PaulaAdelKamal/Paula_henkel_rag_task.git && cd Paula_henkel_rag_task`
+2. `cp .env.example .env`, then fill in `OPENROUTER_API_KEY`, `QDRANT_URL` and `QDRANT_API_KEY`. The Langfuse keys are optional. Write values without quotes: `docker run --env-file` keeps quotes literally.
 3. `docker build -t chatbot:1.0 .`
 4. `docker run -p 8000:8000 --env-file .env chatbot:1.0`
-5. Open http://localhost:8000
+5. Open http://localhost:8000 and chat.
 
-**Port:** 8000. The index is pre-built in Qdrant Cloud, so there is no ingestion step.
+- **Port:** 8000. Set `APP_PORT` in `.env` and map the same port with `-p` to change it.
+- **No ingestion step:** the index is pre-built in Qdrant Cloud, and the app is ready as soon as the container is healthy (Docker `HEALTHCHECK` on `/_stcore/health`).
+- **On first load** the app checks OpenRouter, the Qdrant collection and Langfuse. If a required service isn't ready, it shows which one and why, instead of a broken chat.
+- **Every answer** ends with **Sources** (page and section). If the guide doesn't cover a question, the bot says so and lists the closest sections it searched.
+
+### Running behind a TLS-inspecting proxy (development only)
+
+A corporate network that re-signs HTTPS breaks package downloads during the build and API calls in the container. Export a CA bundle that includes the corporate root, pass it as a build secret, and mount it at run time. Normal environments, including the grader's, don't need this.
+
+```bash
+uv run python -m scripts.export_ca_bundle    # -> data/cache/ca-bundle.pem (Windows hosts)
+docker build --secret id=ca_bundle,src=data/cache/ca-bundle.pem -t chatbot:1.0 .
+docker run -p 8000:8000 --env-file .env -v "$PWD/data/cache/ca-bundle.pem:/etc/ssl/certs/dev-ca-bundle.pem:ro" -e SSL_CERT_FILE=/etc/ssl/certs/dev-ca-bundle.pem chatbot:1.0
+```
+
+### Verifying the grader's steps
+
+`scripts/grader_dryrun.sh` (Linux/macOS: git, docker, curl) or `uv run python -m scripts.grader_dryrun` (any OS) clones the committed repository into a temporary directory and runs the five steps above. It waits until the container is healthy, checks that the UI is served, and asks one question through the real UI inside the container, which must return Sources with a page number.
 
 ## Models
 
