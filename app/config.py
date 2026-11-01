@@ -34,6 +34,9 @@ class Settings(BaseSettings):
 
     # --- Runtime: models (free OpenRouter models; provisional until the Step 9/10 benchmark) ---
     chat_model: str = "google/gemma-4-31b-it:free"
+    # Tried in order by OpenRouter when the chat model errors (free models are often rate-limited
+    # upstream). Comma-separated; only ":free" models are used so a fallback never costs money.
+    chat_fallback_models: str = "nvidia/nemotron-3.5-super-vl:free,google/gemma-4-26b-a4b-it:free"
     embedding_model: str = "nvidia/nemotron-3.5-embed-1b:free"
 
     # --- Runtime: retrieval ---
@@ -59,6 +62,12 @@ class Settings(BaseSettings):
     eval_gen_model: str | None = None
     cache_dir: str = "data/cache"
     max_spend_usd: float = 5.0
+
+    @property
+    def chat_models(self) -> list[str]:
+        """Primary chat model followed by its free fallbacks (paid ones are ignored)."""
+        fallbacks = [m.strip() for m in self.chat_fallback_models.split(",") if m.strip()]
+        return [self.chat_model] + [m for m in fallbacks if m.endswith(":free")]
 
     @property
     def langfuse_enabled(self) -> bool:
