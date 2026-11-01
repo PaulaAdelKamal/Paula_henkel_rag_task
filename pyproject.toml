@@ -32,7 +32,9 @@ dev = [
 # PyMuPDF is AGPL-3.0: acceptable for an offline tool that is not distributed
 # as part of the runtime image (see docs/DECISIONS.md).
 ingest = [
+    "pdfplumber>=0.11",  # MIT; compared against PyMuPDF in docs/PARSING_REPORT.md
     "pymupdf>=1.25",
+    "pypdf>=5.0",  # BSD; compared against PyMuPDF in docs/PARSING_REPORT.md
 ]
 
 [tool.uv]
