@@ -28,18 +28,6 @@ A grounded chatbot that answers questions **only** from the *iOS 7.1 iPhone User
 - **"The AI service is busy or has reached its free usage limit".** Free OpenRouter models are rate-limited: a key without credit allows 50 free requests per day. Try again later, or use a key with credit.
 - Browse to `http://localhost:8000`. The `0.0.0.0:8000` in Streamlit's log is the address *inside* the container.
 
-### Running behind a TLS-inspecting proxy (development only)
-
-A corporate network that re-signs HTTPS breaks package downloads during the build and API calls in the container. Pass a CA bundle that includes the corporate root as a build secret, and mount it at run time. Normal environments, including the grader's, don't need this.
-
-```bash
-# ca-bundle.pem = the public roots plus your corporate root CA (exported from the OS trust store)
-docker build --secret id=ca_bundle,src=data/cache/ca-bundle.pem -t chatbot:1.0 .
-docker run -p 8000:8000 --env-file .env -v "$PWD/data/cache/ca-bundle.pem:/etc/ssl/certs/dev-ca-bundle.pem:ro" -e SSL_CERT_FILE=/etc/ssl/certs/dev-ca-bundle.pem chatbot:1.0
-```
-
-`scripts/grader_dryrun.sh` (Linux/macOS) or `uv run python -m scripts.grader_dryrun` (any OS) re-runs the five steps from a clean clone. It then asks one question through the real UI inside the container, which must return Sources with a page number.
-
 ## How it works
 
 ```
