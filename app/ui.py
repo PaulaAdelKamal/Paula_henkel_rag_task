@@ -138,6 +138,9 @@ def main() -> None:
     """The page: startup check, sidebar, conversation history, starter questions and chat input."""
     settings, checks, graph, tracer = load_app()
     if graph is None:
+        # Keep only a working app in the cache: a failed check (e.g. a brief network or
+        # TLS hiccup) must be re-run on the next reload, as the error screen promises.
+        load_app.clear()
         show_startup_error(checks)
 
     st.session_state.setdefault("thread_id", str(uuid.uuid4()))

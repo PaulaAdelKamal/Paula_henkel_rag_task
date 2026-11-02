@@ -105,6 +105,20 @@ def test_startup_failure_shows_a_readable_error(patched):
     assert not at.exception
 
 
+def test_reload_after_a_transient_startup_failure_recovers(patched):
+    results = iter(
+        [[Check("OpenRouter", "FAIL", "ConnectError: certificate verify failed")]],
+    )
+    patched.setattr(
+        app.health, "startup_checks", lambda s: next(results, [Check("OpenRouter", "OK", "ok")])
+    )
+    first = AppTest.from_file(UI, default_timeout=30).run()
+    assert first.error and not first.chat_input
+    reloaded = AppTest.from_file(UI, default_timeout=30).run()  # a browser reload = new session
+    assert not reloaded.error and reloaded.chat_input
+    assert not reloaded.exception
+
+
 def test_answer_shows_sources_passages_and_page_preview(patched):
     at = ask(AppTest.from_file(UI, default_timeout=30).run(), "How do I close an app?")
     text = assistant_text(at)
