@@ -4,7 +4,8 @@ The free chat model (google/gemma-4-31b-it:free) supports tool calling but not
 strict JSON-schema output on OpenRouter, so the grounded answer is requested
 as a function call (`with_structured_output(method="function_calling")`). If
 the model answers in plain text instead, a JSON object in the text is accepted;
-anything else is reported as a failure rather than guessed at.
+otherwise the request is retried once, and a second miss is reported as a
+failure rather than guessed at.
 """
 
 from __future__ import annotations
@@ -73,7 +74,11 @@ def parse_answer(result: dict) -> GroundedAnswer:
 
 
 class LLMAnswerer:
-    """question + retrieved chunks -> GroundedAnswer (one chat request)."""
+    """question + retrieved chunks -> GroundedAnswer (one chat request, two at most)."""
+
+    # Free models occasionally ignore the forced function call and reply in prose (seen
+    # live in the red-team run). One retry recovers that; a second miss is reported.
+    ATTEMPTS = 2
 
     def __init__(self, chat_model: ChatOpenAI) -> None:
         """Compose prompt -> chat model with GroundedAnswer as a function-call schema."""
@@ -83,11 +88,15 @@ class LLMAnswerer:
         self._chain = ANSWER_PROMPT | structured
 
     def __call__(self, question: str, chunks: list[dict], config=None) -> GroundedAnswer:
-        """Answer one question from numbered sources; returns the validated structure."""
-        result = self._chain.invoke(
-            {"question": question, "sources": format_sources(chunks)}, config=config
-        )
-        return parse_answer(result)
+        """Answer one question from numbered sources; retry once if no structure comes back."""
+        inputs = {"question": question, "sources": format_sources(chunks)}
+        for attempt in range(1, self.ATTEMPTS + 1):
+            try:
+                return parse_answer(self._chain.invoke(inputs, config=config))
+            except AnswerUnavailable:
+                if attempt == self.ATTEMPTS:
+                    raise
+        raise AssertionError("unreachable")  # the loop always returns or raises
 
 
 class LLMCondenser:

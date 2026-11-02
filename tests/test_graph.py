@@ -240,6 +240,30 @@ def test_answerer_reads_the_tool_call():
     assert result == GroundedAnswer(answerable=True, answer="Drag it up.", used_sources=[1])
 
 
+TOOL_CALL_REFUSAL = AIMessage(
+    content="",
+    tool_calls=[
+        {
+            "name": "GroundedAnswer",
+            "args": {"answerable": False, "answer": "", "used_sources": []},
+            "id": "call-2",
+        }
+    ],
+)
+
+
+def test_answerer_retries_once_when_the_model_skips_the_tool_call():
+    fake = ToolCallingFake(responses=[AIMessage(content="The newest is..."), TOOL_CALL_REFUSAL])
+    assert LLMAnswerer(fake)("Newest iPhone?", [MULTITASKING]).answerable is False
+
+
+def test_answerer_gives_up_after_two_prose_replies():
+    prose = AIMessage(content="I think you swipe up.")
+    fake = ToolCallingFake(responses=[prose, prose, TOOL_CALL_REFUSAL])
+    with pytest.raises(AnswerUnavailable):
+        LLMAnswerer(fake)("How?", [MULTITASKING])
+
+
 def test_parse_answer_falls_back_to_json_in_text_and_rejects_prose():
     raw = AIMessage(content='Sure: {"answerable": false, "answer": "", "used_sources": []}')
     assert parse_answer({"parsed": None, "raw": raw}).answerable is False
